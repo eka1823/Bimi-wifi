@@ -218,6 +218,7 @@
     <nav class="tabs" id="tabs">
       <button class="active" data-t="dash">Dasbor</button>
       <button data-t="vouch">Voucher</button>
+      <button data-t="bulanan">Bulanan</button>
       <button data-t="pkg">Paket</button>
       <button data-t="report">Laporan</button>
       <button data-t="mikrotik">MikroTik</button>
@@ -300,6 +301,47 @@
         <thead><tr><th>Paket</th><th class="r">Durasi</th><th class="r">Harga</th><th>Profil/Kecepatan</th><th class="r">Voucher</th><th></th></tr></thead>
         <tbody id="pkgBody"></tbody>
       </table>
+    </div>
+  </section>
+
+  <!-- ============ BULANAN ============ -->
+  <section class="view" id="v-bulanan">
+    <div class="card">
+      <h2 class="sec" style="margin-top:0">Tambah Pelanggan Bulanan</h2>
+      <div class="row">
+        <div class="fld"><label>Nama pelanggan</label><input id="bName" placeholder="mis. Pak Budi"></div>
+        <div class="fld"><label>Username (login)</label><input id="bUser" placeholder="budi"></div>
+        <div class="fld"><label>Password (login)</label><input id="bPass" placeholder="mis. 12345"></div>
+        <div class="fld"><label>No. HP (opsional)</label><input id="bPhone" placeholder="08.."></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <div class="fld"><label>Paket (prefill)</label><select id="bPkg" onchange="subPickPkg()"></select></div>
+        <div class="fld"><label>Harga / bulan (Rp)</label><input id="bPrice" type="number" min="0" value="100000" class="mono"></div>
+        <div class="fld"><label>Profil kecepatan (MikroTik)</label><input id="bSpeed" placeholder="mis. 10M"></div>
+        <div class="fld" style="max-width:120px"><label>Masa (hari)</label><input id="bDays" type="number" min="1" value="30" class="mono"></div>
+        <div class="fld" style="flex:0 0 auto;display:flex;align-items:flex-end"><button class="btn pri" onclick="addSub()">+ Tambah (Lunas)</button></div>
+      </div>
+    </div>
+
+    <div class="stats" style="margin-top:18px" id="bStats"></div>
+
+    <h2 class="sec">Daftar Pelanggan <span class="count" id="subCount"></span></h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Nama</th><th>Login</th><th class="r">Harga</th><th>Jatuh tempo</th><th>Status</th><th></th></tr></thead>
+        <tbody id="subBody"></tbody>
+      </table>
+    </div>
+
+    <h2 class="sec">Skrip MikroTik (Bulanan)</h2>
+    <div class="card">
+      <p style="margin:0 0 12px;font-size:13px;color:var(--muted)">Membuat user login tetap + jadwal <b>nonaktif otomatis</b> pada tanggal jatuh tempo. Tempel di Terminal MikroTik. Saat pelanggan bayar, tekan <b>Perpanjang</b> lalu buat & tempel skrip lagi (aman diulang).</p>
+      <div class="row" style="margin-bottom:14px">
+        <button class="btn pri" onclick="genSubRsc()">⚙ Buat Skrip</button>
+        <button class="btn ghost" onclick="copySubRsc()">📋 Salin</button>
+        <button class="btn grn" onclick="downloadSubRsc()">⬇ Unduh .rsc</button>
+      </div>
+      <div class="codebox mono" id="subRscOut">Klik "Buat Skrip"…</div>
     </div>
   </section>
 
@@ -425,7 +467,7 @@ const FIREBASE_CONFIG = {
 const STORE_ID = "bimistore-1"; // kode toko; samakan di semua perangkat
 /* ================================================================== */
 const KEY='wifi_starlink_mgmt_v1';
-let S={packages:[],vouchers:[],settings:{ssid:'BIMI-STORE WiFi',org:'BIMI-STORE WiFi',warn:5,beep:true}};
+let S={packages:[],vouchers:[],subs:[],settings:{ssid:'BIMI-STORE WiFi',org:'BIMI-STORE WiFi',warn:5,beep:true}};
 let vFilterMode='all', reportMode='bulan';
 
 /* ---------- persistence ---------- */
@@ -434,6 +476,7 @@ function load(){
   if(!S.settings)S.settings={ssid:'BIMI-STORE WiFi',org:'BIMI-STORE WiFi',warn:5,beep:true};
   if(!S.packages)S.packages=[];
   if(!S.vouchers)S.vouchers=[];
+  if(!S.subs)S.subs=[];
   if(typeof S.updatedAt!=='number')S.updatedAt=0;
   if(!S.packages.length)seedPackages();
 }
@@ -523,6 +566,8 @@ function fillPkgSelects(){
   const g=document.getElementById('gPkg');if(g)g.innerHTML=opts||'<option value="">(buat paket dulu)</option>';
   const mf=document.getElementById('mkPkgFilter');
   if(mf)mf.innerHTML='<option value="">Semua paket</option>'+S.packages.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');
+  const bp=document.getElementById('bPkg');
+  if(bp)bp.innerHTML='<option value="">— pilih (prefill) —</option>'+S.packages.map(p=>`<option value="${p.id}">${esc(p.name)} — ${rp(p.price)}</option>`).join('');
 }
 
 /* ---------- vouchers ---------- */
@@ -640,32 +685,39 @@ function printReport(){
   const now=new Date();
   const genStr=now.toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'})+' '+now.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
   const MN=['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-  let periodLabel,bodyHtml,gRev,gUsed,gMin;
+  let periodLabel,bodyHtml,gRev,gUsed,gMin,gSub;
 
   if(reportMode==='bulan'){
     const sel=document.getElementById('rMonth').value||ym(Date.now());
     const [yy,mm]=sel.split('-').map(Number);
     periodLabel='Bulan '+MN[mm]+' '+yy;
     const used=S.vouchers.filter(v=>v.activatedAt&&ym(v.activatedAt)===sel);
-    gRev=used.reduce((a,v)=>a+v.price,0);gUsed=used.length;gMin=used.reduce((a,v)=>a+v.durSec/60,0);
+    const vRev=used.reduce((a,v)=>a+v.price,0);gUsed=used.length;gMin=used.reduce((a,v)=>a+v.durSec/60,0);
+    const subP=[];(S.subs||[]).forEach(s=>(s.payments||[]).forEach(p=>{if(ym(p.at)===sel)subP.push(p);}));
+    gSub=subP.reduce((a,p)=>a+(p.amount||0),0);gRev=vRev+gSub;
     const rows=S.packages.map(p=>{const vv=used.filter(v=>v.pkgId===p.id);return{name:p.name,cnt:vv.length,min:vv.reduce((a,v)=>a+v.durSec/60,0),rev:vv.reduce((a,v)=>a+v.price,0)};}).filter(r=>r.cnt>0);
-    bodyHtml='<h3>Rincian per Paket</h3><table><thead><tr><th>Paket</th><th class="r">Voucher Terpakai</th><th class="r">Menit</th><th class="r">Pendapatan</th></tr></thead><tbody>'+
-      (rows.length?rows.map(r=>`<tr><td>${esc(r.name)}</td><td class="r">${r.cnt}</td><td class="r">${Math.round(r.min).toLocaleString('id-ID')}</td><td class="r">${rp(r.rev)}</td></tr>`).join(''):'<tr><td colspan="4" style="text-align:center;color:#888">Tidak ada pemakaian.</td></tr>')+
-      `</tbody><tfoot><tr><td>Total</td><td class="r">${gUsed}</td><td class="r">${Math.round(gMin).toLocaleString('id-ID')}</td><td class="r">${rp(gRev)}</td></tr></tfoot></table>`;
-    const daily={};used.forEach(v=>{const d=new Date(v.activatedAt).getDate();daily[d]=(daily[d]||0)+v.price;});
+    let rh=rows.map(r=>`<tr><td>${esc(r.name)}</td><td class="r">${r.cnt}</td><td class="r">${Math.round(r.min).toLocaleString('id-ID')}</td><td class="r">${rp(r.rev)}</td></tr>`).join('');
+    if(gSub)rh+=`<tr><td>Langganan Bulanan</td><td class="r">${subP.length}</td><td class="r">—</td><td class="r">${rp(gSub)}</td></tr>`;
+    if(!rh)rh='<tr><td colspan="4" style="text-align:center;color:#888">Tidak ada pemasukan.</td></tr>';
+    bodyHtml='<h3>Rincian Pemasukan</h3><table><thead><tr><th>Item</th><th class="r">Jumlah</th><th class="r">Menit</th><th class="r">Pendapatan</th></tr></thead><tbody>'+rh+
+      `</tbody><tfoot><tr><td>Total</td><td class="r">${gUsed+subP.length}</td><td class="r">${Math.round(gMin).toLocaleString('id-ID')}</td><td class="r">${rp(gRev)}</td></tr></tfoot></table>`;
+    const daily={};used.forEach(v=>{const d=new Date(v.activatedAt).getDate();daily[d]=(daily[d]||0)+v.price;});subP.forEach(p=>{const d=new Date(p.at).getDate();daily[d]=(daily[d]||0)+(p.amount||0);});
     const days=Object.keys(daily).map(Number).sort((a,b)=>a-b);
     if(days.length)bodyHtml+='<h3>Pendapatan Harian</h3><table><thead><tr><th>Tanggal</th><th class="r">Pendapatan</th></tr></thead><tbody>'+
       days.map(d=>`<tr><td>${String(d).padStart(2,'0')} ${MN[mm]} ${yy}</td><td class="r">${rp(daily[d])}</td></tr>`).join('')+'</tbody></table>';
   }else{
     periodLabel='Keseluruhan (Sepanjang Waktu)';
     const used=S.vouchers.filter(v=>v.activatedAt);
-    gRev=used.reduce((a,v)=>a+v.price,0);gUsed=used.length;gMin=used.reduce((a,v)=>a+v.durSec/60,0);
-    const made=S.vouchers.length;
-    const rows=S.packages.map(p=>{const all=S.vouchers.filter(v=>v.pkgId===p.id);const uu=all.filter(v=>v.activatedAt);return{name:p.name,made:all.length,used:uu.length,min:uu.reduce((a,v)=>a+v.durSec/60,0),rev:uu.reduce((a,v)=>a+v.price,0)};}).filter(r=>r.made>0);
-    bodyHtml='<h3>Rincian per Paket</h3><table><thead><tr><th>Paket</th><th class="r">Dibuat</th><th class="r">Terpakai</th><th class="r">Menit</th><th class="r">Pendapatan</th></tr></thead><tbody>'+
-      (rows.length?rows.map(r=>`<tr><td>${esc(r.name)}</td><td class="r">${r.made}</td><td class="r">${r.used}</td><td class="r">${Math.round(r.min).toLocaleString('id-ID')}</td><td class="r">${rp(r.rev)}</td></tr>`).join(''):'<tr><td colspan="5" style="text-align:center;color:#888">Belum ada voucher.</td></tr>')+
-      `</tbody><tfoot><tr><td>Total</td><td class="r">${made}</td><td class="r">${gUsed}</td><td class="r">${Math.round(gMin).toLocaleString('id-ID')}</td><td class="r">${rp(gRev)}</td></tr></tfoot></table>`;
-    const map={};used.forEach(v=>{const k=ym(v.activatedAt);map[k]=(map[k]||0)+v.price;});
+    const vRev=used.reduce((a,v)=>a+v.price,0);gUsed=used.length;gMin=used.reduce((a,v)=>a+v.durSec/60,0);
+    const subP=[];(S.subs||[]).forEach(s=>(s.payments||[]).forEach(p=>subP.push(p)));
+    gSub=subP.reduce((a,p)=>a+(p.amount||0),0);gRev=vRev+gSub;
+    const rows=S.packages.map(p=>{const uu=S.vouchers.filter(v=>v.pkgId===p.id&&v.activatedAt);return{name:p.name,used:uu.length,rev:uu.reduce((a,v)=>a+v.price,0)};}).filter(r=>r.used>0);
+    let rh=rows.map(r=>`<tr><td>${esc(r.name)}</td><td class="r">${r.used}</td><td class="r">${rp(r.rev)}</td></tr>`).join('');
+    if(gSub)rh+=`<tr><td>Langganan Bulanan</td><td class="r">${subP.length}</td><td class="r">${rp(gSub)}</td></tr>`;
+    if(!rh)rh='<tr><td colspan="3" style="text-align:center;color:#888">Belum ada data.</td></tr>';
+    bodyHtml='<h3>Rincian Pemasukan</h3><table><thead><tr><th>Item</th><th class="r">Terpakai</th><th class="r">Pendapatan</th></tr></thead><tbody>'+rh+
+      `</tbody><tfoot><tr><td>Total</td><td class="r">${gUsed+subP.length}</td><td class="r">${rp(gRev)}</td></tr></tfoot></table>`;
+    const map={};used.forEach(v=>{const k=ym(v.activatedAt);map[k]=(map[k]||0)+v.price;});subP.forEach(p=>{const k=ym(p.at);map[k]=(map[k]||0)+(p.amount||0);});
     const keys=Object.keys(map).sort();
     if(keys.length)bodyHtml+='<h3>Pendapatan per Bulan</h3><table><thead><tr><th>Bulan</th><th class="r">Pendapatan</th></tr></thead><tbody>'+
       keys.map(k=>{const [y,mo]=k.split('-');return `<tr><td>${MN[+mo]} ${y}</td><td class="r">${rp(map[k])}</td></tr>`;}).join('')+'</tbody></table>';
@@ -673,7 +725,7 @@ function printReport(){
 
   const summary=`<div class="sum">
     <div class="box"><span>Voucher Terpakai</span><b>${gUsed}</b></div>
-    <div class="box"><span>Total Menit</span><b>${Math.round(gMin).toLocaleString('id-ID')}</b></div>
+    <div class="box"><span>Langganan Bulanan</span><b>${rp(gSub||0)}</b></div>
     <div class="box hl"><span>Total Pendapatan</span><b>${rp(gRev)}</b></div>
   </div>`;
 
@@ -713,6 +765,95 @@ function printReport(){
   setTimeout(()=>{try{w.focus();w.print();}catch(e){}},400);
 }
 
+/* ---------- Pelanggan Bulanan ---------- */
+function incomeEvents(){
+  const ev=[];
+  S.vouchers.forEach(v=>{if(v.activatedAt)ev.push({at:v.activatedAt,amount:v.price||0});});
+  (S.subs||[]).forEach(s=>(s.payments||[]).forEach(p=>ev.push({at:p.at,amount:p.amount||0})));
+  return ev;
+}
+function subPickPkg(){
+  const p=S.packages.find(x=>x.id===document.getElementById('bPkg').value);if(!p)return;
+  document.getElementById('bPrice').value=p.price||0;
+  if(p.speed)document.getElementById('bSpeed').value=p.speed;
+  document.getElementById('bDays').value=(p.days&&!p.hours&&!p.mins)?p.days:30;
+}
+function addSub(){
+  const name=document.getElementById('bName').value.trim();
+  const user=document.getElementById('bUser').value.trim();
+  if(!name||!user){alert('Isi nama dan username.');return;}
+  const days=Math.max(1,parseInt(document.getElementById('bDays').value)||30);
+  const price=parseFloat(document.getElementById('bPrice').value)||0;
+  const now=Date.now();S.subs=S.subs||[];
+  S.subs.unshift({id:uid(),name,user,pass:document.getElementById('bPass').value.trim(),phone:document.getElementById('bPhone').value.trim(),
+    speed:document.getElementById('bSpeed').value.trim(),price,days,createdAt:now,dueAt:now+days*86400000,active:true,payments:[{at:now,amount:price}]});
+  ['bName','bUser','bPass','bPhone','bSpeed'].forEach(id=>document.getElementById(id).value='');
+  save();renderAll();
+}
+function renewSub(id){
+  const s=(S.subs||[]).find(x=>x.id===id);if(!s)return;const now=Date.now();
+  s.payments=s.payments||[];s.payments.push({at:now,amount:s.price||0});
+  const base=s.dueAt>now?s.dueAt:now;s.dueAt=base+(s.days||30)*86400000;s.active=true;
+  save();renderAll();
+}
+function suspendSub(id){const s=(S.subs||[]).find(x=>x.id===id);if(!s)return;s.active=!s.active;save();renderAll();}
+function delSub(id){const s=(S.subs||[]).find(x=>x.id===id);if(!s)return;if(!confirm('Hapus pelanggan "'+s.name+'"?'))return;S.subs=S.subs.filter(x=>x.id!==id);save();renderAll();}
+function subState(s){
+  const now=Date.now();
+  if(!s.active)return{t:'Nonaktif',cls:'off',days:0};
+  const left=Math.ceil((s.dueAt-now)/86400000);
+  if(left<0)return{t:'Jatuh tempo',cls:'exp',days:left};
+  return{t:'Aktif',cls:'ok',days:left};
+}
+function renderSubs(){
+  const subs=S.subs||[];const now=Date.now(),nowYm=ym(now);
+  const aktif=subs.filter(s=>s.active&&s.dueAt>now).length;
+  const tempo=subs.filter(s=>s.active&&(s.dueAt-now)/86400000<=3).length;
+  const revM=subs.reduce((a,s)=>a+(s.payments||[]).filter(p=>ym(p.at)===nowYm).reduce((b,p)=>b+(p.amount||0),0),0);
+  const bs=document.getElementById('bStats');
+  if(bs)bs.innerHTML=statBox('Pelanggan Aktif',aktif)+statBox('Jatuh Tempo ≤3 hari',tempo)+statBox('Pendapatan Bulan Ini',rp(revM))+statBox('Total Pelanggan',subs.length);
+  const tb=document.getElementById('subBody');if(!tb)return;
+  if(!subs.length){tb.innerHTML='<tr><td colspan="6" class="empty">Belum ada pelanggan bulanan.</td></tr>';document.getElementById('subCount').textContent='';return;}
+  tb.innerHTML=subs.map(s=>{
+    const st=subState(s);
+    const due=new Date(s.dueAt).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
+    const info=st.t==='Aktif'?st.days+' hari lagi':(st.t==='Jatuh tempo'?'telat '+(-st.days)+' hari':'—');
+    const infoColor=st.cls==='exp'?'var(--danger)':(st.cls==='ok'&&st.days<=3?'var(--amber)':'var(--muted)');
+    const pill=st.t==='Aktif'?'<span class="pill active">Aktif</span>':st.t==='Jatuh tempo'?'<span class="pill" style="color:var(--danger);background:rgba(251,91,110,.12);box-shadow:inset 0 0 0 1px rgba(251,91,110,.3)">Jatuh tempo</span>':'<span class="pill used">Nonaktif</span>';
+    return `<tr>
+      <td><b>${esc(s.name)}</b>${s.phone?'<div style="font-size:11px;color:var(--muted)">'+esc(s.phone)+'</div>':''}</td>
+      <td class="mono">${esc(s.user)}${s.pass?' / '+esc(s.pass):''}</td>
+      <td class="r mono">${rp(s.price)}</td>
+      <td>${due}<div style="font-size:11px;color:${infoColor}">${info}</div></td>
+      <td>${pill}</td>
+      <td class="r" style="white-space:nowrap">
+        <button class="btn small grn" onclick="renewSub('${s.id}')">↻ Perpanjang</button>
+        <button class="btn small ghost" onclick="suspendSub('${s.id}')">${s.active?'Nonaktif':'Aktifkan'}</button>
+        <button class="btn small ghost dangerbtn" onclick="delSub('${s.id}')">✕</button>
+      </td></tr>`;
+  }).join('');
+  document.getElementById('subCount').textContent=subs.length+' pelanggan';
+}
+function schedDate(ms){const d=new Date(ms);const M=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];return M[d.getMonth()]+'/'+String(d.getDate()).padStart(2,'0')+'/'+d.getFullYear();}
+function subRscText(){
+  const subs=(S.subs||[]).filter(s=>s.active);if(!subs.length)return null;
+  const lines=['# Pelanggan bulanan BIMI-STORE - tempel di Terminal MikroTik','# User login tetap + jadwal nonaktif otomatis pd tanggal jatuh tempo'];
+  subs.forEach(s=>{
+    const u=s.user,pass=s.pass||s.user,prof=s.speed?` profile="${s.speed}"`:'';
+    const dd=new Date(s.dueAt).toLocaleDateString('id-ID');
+    lines.push('');
+    lines.push(`/ip hotspot user remove [find name="${u}"]`);
+    lines.push(`/ip hotspot user add name="${u}" password="${pass}"${prof} comment="Bulanan: ${s.name} (tempo ${dd})"`);
+    lines.push(`/system scheduler remove [find name="exp-${u}"]`);
+    lines.push(`/system scheduler add name="exp-${u}" start-date=${schedDate(s.dueAt)} start-time=00:00:00 on-event="/ip hotspot user disable [find name=\\"${u}\\"]" comment="nonaktif otomatis jatuh tempo"`);
+  });
+  return lines.join('\n');
+}
+function genSubRsc(){const t=subRscText();document.getElementById('subRscOut').textContent=t||'Belum ada pelanggan aktif.';}
+function copySubRsc(){const t=document.getElementById('subRscOut').textContent;if(t&&navigator.clipboard)navigator.clipboard.writeText(t);}
+function downloadSubRsc(){const t=subRscText();if(!t){alert('Belum ada pelanggan aktif.');return;}const b=new Blob([t],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='pelanggan-bulanan-mikrotik.rsc';a.click();URL.revokeObjectURL(a.href);}
+
+/* ---------- timer loop ---------- */
 /* ---------- timer loop ---------- */
 setInterval(()=>{
   if(sweepExpired())return;   // ada voucher habis → sudah tersimpan & re-render
@@ -753,8 +894,9 @@ function renderDash(){
   document.getElementById('actCount').textContent=active.length?active.length+' aktif':'';
 
   const nowYm=ym(Date.now());
-  const revMonth=S.vouchers.filter(v=>v.activatedAt&&ym(v.activatedAt)===nowYm).reduce((a,v)=>a+v.price,0);
-  const revAll=S.vouchers.filter(v=>v.activatedAt).reduce((a,v)=>a+v.price,0);
+  const ev=incomeEvents();
+  const revMonth=ev.filter(e=>ym(e.at)===nowYm).reduce((a,e)=>a+e.amount,0);
+  const revAll=ev.reduce((a,e)=>a+e.amount,0);
   document.getElementById('stActive').textContent=active.length;
   document.getElementById('stUnused').textContent=S.vouchers.filter(v=>v.status==='unused').length;
   document.getElementById('stRevMonth').textContent=rp(revMonth);
@@ -784,51 +926,58 @@ function renderMonthly(){
   if(!inp.value)inp.value=ym(Date.now());
   const sel=inp.value;
   const used=S.vouchers.filter(v=>v.activatedAt&&ym(v.activatedAt)===sel);
-  const rev=used.reduce((a,v)=>a+v.price,0);
+  const vRev=used.reduce((a,v)=>a+v.price,0);
   const mins=used.reduce((a,v)=>a+(v.durSec/60),0);
+  const subP=[];(S.subs||[]).forEach(s=>(s.payments||[]).forEach(p=>{if(ym(p.at)===sel)subP.push(p);}));
+  const subRev=subP.reduce((a,p)=>a+(p.amount||0),0);
+  const rev=vRev+subRev;
   document.getElementById('mStats').innerHTML=
     statBox('Voucher Terpakai',used.length)+
+    statBox('Langganan Bulanan',rp(subRev))+
     statBox('Pendapatan',rp(rev))+
-    statBox('Total Menit',Math.round(mins).toLocaleString('id-ID'))+
-    statBox('Rata-rata / voucher',used.length?rp(rev/used.length):'Rp 0');
-  // daily chart
+    statBox('Total Menit',Math.round(mins).toLocaleString('id-ID'));
   const [yy,mm]=sel.split('-').map(Number);
   const days=new Date(yy,mm,0).getDate();
   const daily=Array(days).fill(0);
-  used.forEach(v=>{const d=new Date(v.activatedAt).getDate();daily[d-1]+=v.price;});
+  used.forEach(v=>{daily[new Date(v.activatedAt).getDate()-1]+=v.price;});
+  subP.forEach(p=>{daily[new Date(p.at).getDate()-1]+=(p.amount||0);});
   const labels=daily.map((_,i)=>i+1).map(d=>d%5===0||d===1?d:'');
   chart(document.getElementById('mChart'),labels,daily,x=>x>=1000?Math.round(x/1000)+'k':x);
-  // per package
   const rows=S.packages.map(p=>{const vv=used.filter(v=>v.pkgId===p.id);return{name:p.name,cnt:vv.length,min:vv.reduce((a,v)=>a+v.durSec/60,0),rev:vv.reduce((a,v)=>a+v.price,0)};}).filter(r=>r.cnt>0);
-  const tb=document.getElementById('mPkgBody');
-  tb.innerHTML=rows.length?rows.map(r=>`<tr><td>${esc(r.name)}</td><td class="r">${r.cnt}</td><td class="r">${Math.round(r.min).toLocaleString('id-ID')}</td><td class="r mono">${rp(r.rev)}</td></tr>`).join(''):'<tr><td colspan="4" class="empty">Belum ada pemakaian bulan ini.</td></tr>';
-  document.getElementById('mTotV').textContent=used.length;
+  let html=rows.map(r=>`<tr><td>${esc(r.name)}</td><td class="r">${r.cnt}</td><td class="r">${Math.round(r.min).toLocaleString('id-ID')}</td><td class="r mono">${rp(r.rev)}</td></tr>`).join('');
+  if(subRev)html+=`<tr><td>Langganan Bulanan</td><td class="r">${subP.length}</td><td class="r">—</td><td class="r mono">${rp(subRev)}</td></tr>`;
+  document.getElementById('mPkgBody').innerHTML=html||'<tr><td colspan="4" class="empty">Belum ada pemasukan bulan ini.</td></tr>';
+  document.getElementById('mTotV').textContent=used.length+subP.length;
   document.getElementById('mTotMin').textContent=Math.round(mins).toLocaleString('id-ID');
   document.getElementById('mTotRev').textContent=rp(rev);
 }
 function renderOverall(){
   const made=S.vouchers.length;
   const usedList=S.vouchers.filter(v=>v.activatedAt);
-  const rev=usedList.reduce((a,v)=>a+v.price,0);
+  const vRev=usedList.reduce((a,v)=>a+v.price,0);
   const mins=usedList.reduce((a,v)=>a+v.durSec/60,0);
+  const subP=[];(S.subs||[]).forEach(s=>(s.payments||[]).forEach(p=>subP.push(p)));
+  const subRev=subP.reduce((a,p)=>a+(p.amount||0),0);
+  const rev=vRev+subRev;
+  const subsActive=(S.subs||[]).filter(s=>s.active&&s.dueAt>Date.now()).length;
   document.getElementById('aStats').innerHTML=
-    statBox('Voucher Dibuat',made)+
     statBox('Voucher Terpakai',usedList.length)+
+    statBox('Pelanggan Bln Aktif',subsActive)+
     statBox('Pendapatan Total',rp(rev))+
-    statBox('Aktif Sekarang',S.vouchers.filter(v=>v.status==='active').length);
-  // monthly trend (last 12 months present in data or last 12 calendar months)
+    statBox('Voucher Aktif',S.vouchers.filter(v=>v.status==='active').length);
   const map={};usedList.forEach(v=>{const k=ym(v.activatedAt);map[k]=(map[k]||0)+v.price;});
+  subP.forEach(p=>{const k=ym(p.at);map[k]=(map[k]||0)+(p.amount||0);});
   const months=[];const now=new Date();
   for(let i=11;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push(ym(d));}
   const vals=months.map(m=>map[m]||0);
   const labels=months.map(m=>{const [y,mo]=m.split('-');return ['','Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'][+mo]+' '+y.slice(2);});
   chart(document.getElementById('aChart'),labels,vals,x=>x>=1000?Math.round(x/1000)+'k':x);
-  // per package
   const rows=S.packages.map(p=>{const all=S.vouchers.filter(v=>v.pkgId===p.id);const uu=all.filter(v=>v.activatedAt);return{name:p.name,made:all.length,used:uu.length,min:uu.reduce((a,v)=>a+v.durSec/60,0),rev:uu.reduce((a,v)=>a+v.price,0)};}).filter(r=>r.made>0);
-  const tb=document.getElementById('aPkgBody');
-  tb.innerHTML=rows.length?rows.map(r=>`<tr><td>${esc(r.name)}</td><td class="r">${r.made}</td><td class="r">${r.used}</td><td class="r">${Math.round(r.min).toLocaleString('id-ID')}</td><td class="r mono">${rp(r.rev)}</td></tr>`).join(''):'<tr><td colspan="5" class="empty">Belum ada voucher.</td></tr>';
+  let html=rows.map(r=>`<tr><td>${esc(r.name)}</td><td class="r">${r.made}</td><td class="r">${r.used}</td><td class="r">${Math.round(r.min).toLocaleString('id-ID')}</td><td class="r mono">${rp(r.rev)}</td></tr>`).join('');
+  if(subRev)html+=`<tr><td>Langganan Bulanan</td><td class="r">—</td><td class="r">${subP.length}</td><td class="r">—</td><td class="r mono">${rp(subRev)}</td></tr>`;
+  document.getElementById('aPkgBody').innerHTML=html||'<tr><td colspan="5" class="empty">Belum ada data.</td></tr>';
   document.getElementById('aTotMade').textContent=made;
-  document.getElementById('aTotUsed').textContent=usedList.length;
+  document.getElementById('aTotUsed').textContent=usedList.length+subP.length;
   document.getElementById('aTotMin').textContent=Math.round(mins).toLocaleString('id-ID');
   document.getElementById('aTotRev').textContent=rp(rev);
 }
@@ -929,7 +1078,7 @@ function importData(e){
 }
 
 /* ---------- render all ---------- */
-function renderAll(){fillPkgSelects();renderDash();renderVouchers();renderPackages();if(document.getElementById('v-report').classList.contains('active'))renderReports();}
+function renderAll(){fillPkgSelects();renderDash();renderVouchers();renderPackages();renderSubs();if(document.getElementById('v-report').classList.contains('active'))renderReports();}
 document.querySelectorAll('.ov').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('show');}));
 
 /* ---------- Cloud sync (Firebase) ---------- */
