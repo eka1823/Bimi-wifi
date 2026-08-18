@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manajemen BIMI-STORE — WiFi Starlink</title>
+<meta name="theme-color" content="#0e7490">
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BIMI-STORE">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root{
+    --bg:#060912; --bg2:#0A0F1C;
+    --surf:#0F1626; --surf2:#131C30; --surfhi:#17213a;
+    --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.14);
+    --text:#EAF1FB; --muted:#93A3BE; --dim:#5D6E88;
+    --cyan:#22D3EE; --indigo:#6366F1; --teal:#2DD4BF;
+    --amber:#FBBF24; --danger:#FB5B6E; --ok:#34D399;
+    --grad:linear-gradient(120deg,#22D3EE 0%,#4F8DF5 55%,#7C6BF2 100%);
+    --r:16px; --r-sm:11px;
+    --sh:0 1px 0 rgba(255,255,255,.03) inset,0 12px 30px -18px rgba(0,0,0,.8);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    color:var(--text);
+    font-family:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    padding-bottom:76px;letter-spacing:-.1px;
+    background:
+      radial-gradient(900px 480px at 88% -8%, rgba(34,211,238,.14), transparent 60%),
+      radial-gradient(760px 520px at -6% 8%, rgba(99,102,241,.16), transparent 58%),
+      linear-gradient(180deg,var(--bg2),var(--bg)) fixed;
+  }
+  .mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,"Roboto Mono",monospace;font-variant-numeric:tabular-nums;letter-spacing:0}
+  .wrap{max-width:1160px;margin:0 auto;padding:0 18px}
+  ::selection{background:rgba(79,141,245,.35)}
+
+  /* ---------- header ---------- */
+  header{position:sticky;top:0;z-index:30;background:rgba(8,12,22,.72);backdrop-filter:blur(16px) saturate(140%);border-bottom:1px solid var(--line)}
+  .head{display:flex;align-items:center;gap:13px;padding:13px 0}
+  .logo{width:42px;height:42px;flex:0 0 auto;border-radius:13px;position:relative;background:var(--grad);box-shadow:0 8px 22px -8px rgba(79,141,245,.7),0 0 0 1px rgba(255,255,255,.12) inset;display:grid;place-items:center;overflow:hidden}
+  .logo::after{content:"";position:absolute;inset:0;background:radial-gradient(60% 60% at 30% 20%,rgba(255,255,255,.4),transparent 60%);opacity:.6}
+  .logo svg{width:24px;height:24px;position:relative;z-index:1}
+  .title h1{font-size:16px;margin:0;font-weight:800;letter-spacing:-.3px;line-height:1.1}
+  .title span{font-size:11.5px;color:var(--muted);font-weight:500}
+  .head .tools{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+  .iconbtn{width:38px;height:38px;display:grid;place-items:center;border-radius:11px;border:1px solid var(--line);background:var(--surf);color:var(--text);cursor:pointer;font-size:15px;transition:.15s}
+  .iconbtn:hover{border-color:var(--line2);background:var(--surfhi);transform:translateY(-1px)}
+
+  .btn{border:1px solid var(--line);background:var(--surf);color:var(--text);padding:9px 14px;border-radius:11px;font-size:13px;cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:7px;transition:.15s;font-family:inherit}
+  .btn:hover{border-color:var(--line2);background:var(--surfhi);transform:translateY(-1px)}
+  .btn.ghost{background:transparent}
+  .btn.small{padding:7px 10px;font-size:12px;border-radius:9px}
+  .btn.pri{background:var(--grad);border-color:transparent;color:#04121e;font-weight:700;box-shadow:0 8px 20px -10px rgba(79,141,245,.8)}
+  .btn.pri:hover{filter:brightness(1.06);transform:translateY(-1px)}
+  .btn.grn{background:linear-gradient(120deg,#34D399,#10B981);border-color:transparent;color:#04160f;font-weight:700;box-shadow:0 8px 20px -12px rgba(16,185,129,.8)}
+  .btn.grn:hover{filter:brightness(1.05)}
+  .btn.warnbtn{border-color:rgba(251,191,36,.4);color:var(--amber);background:rgba(251,191,36,.08)}
+  .btn.dangerbtn{border-color:rgba(251,91,110,.35);color:#ff9db0;background:rgba(251,91,110,.07)}
+  .btn.dangerbtn:hover{background:rgba(251,91,110,.14)}
+
+  /* ---------- tabs ---------- */
+  nav.tabs{display:flex;gap:4px;overflow-x:auto;padding:6px;margin:0 0 -1px;scrollbar-width:none}
+  nav.tabs::-webkit-scrollbar{display:none}
+  nav.tabs button{background:transparent;border:none;color:var(--muted);padding:9px 15px;font-size:13.5px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit;border-radius:10px;transition:.15s;position:relative}
+  nav.tabs button:hover{color:var(--text)}
+  nav.tabs button.active{color:#fff;background:linear-gradient(180deg,rgba(79,141,245,.16),rgba(79,141,245,.06));box-shadow:inset 0 0 0 1px rgba(79,141,245,.28)}
+
+  .view{display:none;padding-top:22px;animation:fade .35s ease}
+  .view.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  /* ---------- stats ---------- */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:8px}
+  .stat{position:relative;background:linear-gradient(180deg,var(--surf2),var(--surf));border:1px solid var(--line);border-radius:var(--r);padding:15px 16px 14px;box-shadow:var(--sh);overflow:hidden}
+  .stat::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--grad);opacity:.85}
+  .stat .k{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;font-weight:600}
+  .stat .v{font-size:25px;margin-top:7px;font-weight:800;letter-spacing:-.5px}
+  .stat .v small{font-size:11px;color:var(--muted);font-weight:500}
+
+  /* ---------- section head ---------- */
+  h2.sec{font-size:11.5px;text-transform:uppercase;letter-spacing:1.4px;color:var(--muted);margin:26px 0 13px;display:flex;align-items:center;gap:10px;font-weight:700}
+  h2.sec::before{content:"";width:14px;height:2px;border-radius:2px;background:var(--grad)}
+  h2.sec .count{margin-left:auto;color:var(--dim);font-weight:600;letter-spacing:.4px}
+
+  .card{background:linear-gradient(180deg,var(--surf2),var(--surf));border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:var(--sh)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:15px}
+
+  /* ---------- session cards ---------- */
+  .scard{background:linear-gradient(180deg,var(--surf2),var(--surf));border:1px solid var(--line);border-radius:var(--r);padding:16px;position:relative;overflow:hidden;box-shadow:var(--sh);transition:.2s}
+  .scard:hover{transform:translateY(-2px);border-color:var(--line2)}
+  .scard.warn{border-color:rgba(251,191,36,.45);box-shadow:0 0 30px -10px rgba(251,191,36,.5)}
+  .scard .top{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+  .dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+  .dot.run{background:var(--ok);box-shadow:0 0 10px var(--ok);animation:pulse 1.6s infinite}
+  .dot.pause{background:var(--amber)}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .scard .nm{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .scard .meta{font-size:10.5px;color:var(--muted);margin-left:auto;text-align:right;background:rgba(255,255,255,.05);padding:3px 9px;border-radius:20px;white-space:nowrap}
+  .time{font-size:40px;font-weight:800;letter-spacing:-1px;margin:6px 0 3px;line-height:1;color:#fff}
+  .time.tw{color:var(--amber)}
+  .sub{font-size:11px;color:var(--muted);margin-bottom:12px}
+  .bar{height:8px;background:rgba(0,0,0,.35);border-radius:6px;overflow:hidden;margin-bottom:13px;border:1px solid var(--line)}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--teal),var(--cyan));box-shadow:0 0 12px rgba(34,211,238,.6);transition:width .6s linear;border-radius:6px}
+  .bar.w i{background:linear-gradient(90deg,#f59e0b,#fbbf24);box-shadow:0 0 12px rgba(251,191,36,.6)}
+  .ctrls{display:flex;gap:7px;flex-wrap:wrap}
+
+  /* ---------- inputs ---------- */
+  input,select{width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:10px;color:var(--text);padding:10px 12px;font-size:14px;font-family:inherit;outline:none;transition:.15s}
+  input:focus,select:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(34,211,238,.14)}
+  input::placeholder{color:var(--dim)}
+  select{cursor:pointer}
+  .row{display:flex;gap:11px;flex-wrap:wrap}
+  .fld{flex:1;min-width:120px}
+  .fld label{display:block;font-size:10.5px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+
+  /* ---------- tables ---------- */
+  .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surf);box-shadow:var(--sh)}
+  table{width:100%;border-collapse:collapse;font-size:13px;min-width:560px}
+  th,td{padding:12px 14px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;background:rgba(255,255,255,.02);font-weight:700}
+  tbody tr{transition:.12s}
+  tbody tr:hover{background:rgba(79,141,245,.07)}
+  tbody tr:last-child td{border-bottom:none}
+  td.r,th.r{text-align:right}
+  tfoot td{font-weight:800;background:rgba(255,255,255,.03);border-top:1px solid var(--line2)}
+  .empty{padding:34px 16px;text-align:center;color:var(--dim);font-size:13.5px}
+
+  .pill{font-size:10.5px;padding:4px 10px;border-radius:20px;font-weight:700;display:inline-block;letter-spacing:.2px}
+  .pill.unused{color:var(--cyan);background:rgba(34,211,238,.12);box-shadow:inset 0 0 0 1px rgba(34,211,238,.28)}
+  .pill.active{color:var(--ok);background:rgba(52,211,153,.12);box-shadow:inset 0 0 0 1px rgba(52,211,153,.3)}
+  .pill.used{color:var(--dim);background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 1px var(--line)}
+  .vcode{font-size:15px;font-weight:800;letter-spacing:1px}
+
+  /* ---------- voucher preview ---------- */
+  .vprev{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:9px;margin-top:14px}
+  .vc{border:1px solid var(--line);border-radius:12px;padding:12px;background:linear-gradient(180deg,var(--surf2),var(--surf));font-size:11.5px;position:relative;overflow:hidden}
+  .vc::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--grad)}
+  .vc .ssid{color:var(--cyan);font-weight:700}
+  .vc .cd{font-size:17px;font-weight:800;letter-spacing:1px;margin:5px 0;color:#fff}
+  .vc .dp{color:var(--muted)}
+
+  /* ---------- chart ---------- */
+  .chart{display:flex;align-items:flex-end;gap:5px;height:168px;padding:16px 14px 12px;border:1px solid var(--line);border-radius:var(--r);background:
+      linear-gradient(180deg,var(--surf2),var(--surf)),
+      repeating-linear-gradient(0deg,transparent,transparent 32px,rgba(255,255,255,.04) 32px,rgba(255,255,255,.04) 33px);
+    background-blend-mode:normal;overflow-x:auto;box-shadow:var(--sh)}
+  .chart .col{flex:1;min-width:16px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;gap:6px}
+  .chart .col .bar2{width:66%;min-height:3px;background:linear-gradient(180deg,var(--cyan),var(--indigo));border-radius:6px 6px 3px 3px;box-shadow:0 0 14px -4px rgba(34,211,238,.7);transition:height .5s cubic-bezier(.2,.7,.2,1)}
+  .chart .col:hover .bar2{filter:brightness(1.15)}
+  .chart .col .lb{font-size:9px;color:var(--dim);white-space:nowrap;font-weight:600}
+  .chart .col .vl{font-size:9px;color:var(--muted);font-weight:600}
+
+  /* ---------- segmented ---------- */
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surf);padding:3px;gap:2px}
+  .seg button{background:transparent;border:none;color:var(--muted);padding:8px 14px;font-size:12.5px;cursor:pointer;font-family:inherit;font-weight:600;border-radius:9px;transition:.15s}
+  .seg button:hover{color:var(--text)}
+  .seg button.on{background:var(--grad);color:#04121e;font-weight:700}
+
+  .toolbar{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+  .toolbar input,.toolbar select{width:auto;flex:0 1 auto}
+
+  /* ---------- modal ---------- */
+  .ov{position:fixed;inset:0;background:rgba(4,7,14,.66);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:60;padding:16px}
+  .ov.show{display:flex;animation:fade .2s ease}
+  .modal{background:linear-gradient(180deg,var(--surf2),var(--surf));border:1px solid var(--line2);border-radius:20px;width:100%;max-width:450px;padding:22px;max-height:90vh;overflow:auto;box-shadow:0 40px 80px -30px rgba(0,0,0,.9)}
+  .modal h3{margin:0 0 4px;font-size:18px;font-weight:800;letter-spacing:-.3px}
+  .modal p.hint{margin:0 0 18px;font-size:12.5px;color:var(--muted)}
+  .modal .foot{display:flex;gap:9px;justify-content:flex-end;margin-top:20px}
+  .switch{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--line)}
+  .switch:last-of-type{border-bottom:none}
+  .switch .lbl{font-size:14px;font-weight:600}.switch .lbl small{display:block;color:var(--muted);font-size:11.5px;font-weight:400;margin-top:2px}
+  .toggle{width:46px;height:27px;border-radius:20px;background:rgba(255,255,255,.12);position:relative;cursor:pointer;flex:0 0 auto;transition:.2s}
+  .toggle.on{background:var(--grad)}
+  .toggle b{position:absolute;top:3px;left:3px;width:21px;height:21px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+  .toggle.on b{left:22px}
+
+  .note{font-size:12.5px;color:var(--muted);background:linear-gradient(180deg,var(--surf2),var(--surf));border:1px solid var(--line);border-left:3px solid var(--amber);border-radius:12px;padding:13px 15px;margin:16px 0;line-height:1.55}
+  .note.ok{border-left-color:var(--teal)}
+  .note b{color:var(--text)}
+  .codebox{background:#05090f;border:1px solid var(--line);border-radius:12px;padding:14px;font-size:12px;white-space:pre-wrap;word-break:break-all;max-height:230px;overflow:auto;line-height:1.6;color:#c7d6ea}
+  .foot-cred{text-align:center;color:var(--dim);font-size:11.5px;margin-top:40px;padding-top:20px;border-top:1px solid var(--line)}
+
+  @media (max-width:640px){
+    .stats{grid-template-columns:1fr 1fr}
+    .stat .v{font-size:22px}
+    .title span{display:none}
+    .time{font-size:36px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="head">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 15c5-5 13-5 18 0" stroke="#04121e" stroke-width="2.2" stroke-linecap="round" opacity=".55"/>
+          <path d="M6 18c3.5-3.5 8.5-3.5 12 0" stroke="#04121e" stroke-width="2.2" stroke-linecap="round" opacity=".8"/>
+          <circle cx="12" cy="20.5" r="1.9" fill="#04121e"/>
+        </svg>
+      </div>
+      <div class="title"><h1>Manajemen BIMI-STORE</h1><span>WiFi Starlink · Desa Tepian Terap</span></div>
+      <div class="tools">
+        <span class="iconbtn" id="syncBadge" title="Status sinkron" onclick="syncBadgeTap()" style="width:auto;padding:0 11px;font-size:12px;font-weight:700">◍ Lokal</span>
+        <button class="iconbtn" id="installBtn" title="Pasang aplikasi" onclick="doInstall()" style="display:none">＋</button>
+        <button class="iconbtn" onclick="openSettings()" title="Pengaturan">⚙</button>
+        <button class="iconbtn" onclick="exportData()" title="Cadangkan data">⬇</button>
+        <button class="iconbtn" onclick="document.getElementById('imp').click()" title="Pulihkan data">⬆</button>
+        <input type="file" id="imp" accept="application/json" hidden onchange="importData(event)">
+      </div>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button class="active" data-t="dash">Dasbor</button>
+      <button data-t="vouch">Voucher</button>
+      <button data-t="bulanan">Bulanan</button>
+      <button data-t="pkg">Paket</button>
+      <button data-t="report">Laporan</button>
+      <button data-t="mikrotik">MikroTik</button>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ============ DASHBOARD ============ -->
+  <section class="view active" id="v-dash">
+    <div class="stats">
+      <div class="stat"><div class="k">Sesi Aktif</div><div class="v" id="stActive">0</div></div>
+      <div class="stat"><div class="k">Voucher Belum Terpakai</div><div class="v" id="stUnused">0</div></div>
+      <div class="stat"><div class="k">Pendapatan Bulan Ini</div><div class="v" id="stRevMonth">Rp 0</div></div>
+      <div class="stat"><div class="k">Pendapatan Total</div><div class="v" id="stRevAll">Rp 0</div></div>
+    </div>
+
+    <h2 class="sec">Sesi Berjalan <span class="count" id="actCount"></span></h2>
+    <div class="grid" id="activeGrid"></div>
+    <div id="activeEmpty" class="empty" style="display:none">Belum ada voucher aktif. Aktifkan voucher di tab <b>Voucher</b>.</div>
+
+    <div class="note">Aplikasi ini pusat data & voucher. Pemutusan otomatis dijalankan <b>MikroTik</b> — lihat tab MikroTik untuk menyambungkannya di belakang Starlink.</div>
+  </section>
+
+  <!-- ============ VOUCHER ============ -->
+  <section class="view" id="v-vouch">
+    <div class="card">
+      <h2 class="sec" style="margin-top:0">Buat Nomor Token / Voucher</h2>
+      <div class="row">
+        <div class="fld"><label>Paket</label><select id="gPkg"></select></div>
+        <div class="fld" style="max-width:110px"><label>Jumlah</label><input id="gQty" type="number" min="1" max="500" value="10" class="mono"></div>
+        <div class="fld" style="max-width:150px"><label>Format kode</label>
+          <select id="gType"><option value="num">Angka (PIN)</option><option value="alnum">Huruf + Angka</option></select>
+        </div>
+        <div class="fld" style="max-width:100px"><label>Panjang</label><input id="gLen" type="number" min="4" max="12" value="6" class="mono"></div>
+        <div class="fld" style="max-width:130px"><label>Awalan (opsional)</label><input id="gPrefix" placeholder="mis. TT"></div>
+        <div class="fld" style="flex:0 0 auto;display:flex;align-items:flex-end"><button class="btn pri" onclick="genVouchers()">⚡ Buat Voucher</button></div>
+      </div>
+    </div>
+
+    <div class="toolbar" style="margin-top:18px">
+      <div class="seg" id="vFilter">
+        <button class="on" data-f="all">Semua</button>
+        <button data-f="unused">Belum pakai</button>
+        <button data-f="active">Aktif</button>
+        <button data-f="used">Terpakai</button>
+      </div>
+      <input id="vSearch" placeholder="Cari kode…" style="min-width:150px" oninput="renderVouchers()">
+      <button class="btn small grn" onclick="printFiltered()">🖨 Cetak yang tampil</button>
+      <button class="btn small dangerbtn" onclick="delFiltered()">Hapus yang tampil</button>
+    </div>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Kode</th><th>Paket</th><th class="r">Durasi</th><th class="r">Harga</th><th>Status</th><th>Sisa/Info</th><th></th></tr></thead>
+        <tbody id="vBody"></tbody>
+      </table>
+    </div>
+    <div id="vPrev" class="vprev"></div>
+  </section>
+
+  <!-- ============ PAKET ============ -->
+  <section class="view" id="v-pkg">
+    <div class="card">
+      <h2 class="sec" style="margin-top:0">Tambah Paket</h2>
+      <div class="row">
+        <div class="fld"><label>Nama paket</label><input id="pName" placeholder="mis. Paket 3 Jam"></div>
+        <div class="fld" style="max-width:90px"><label>Hari</label><input id="pDay" type="number" min="0" value="0" class="mono"></div>
+        <div class="fld" style="max-width:90px"><label>Jam</label><input id="pHour" type="number" min="0" value="3" class="mono"></div>
+        <div class="fld" style="max-width:90px"><label>Menit</label><input id="pMin" type="number" min="0" value="0" class="mono"></div>
+        <div class="fld"><label>Harga (Rp)</label><input id="pPrice" type="number" min="0" value="5000" class="mono"></div>
+        <div class="fld"><label>Kecepatan / profil MikroTik</label><input id="pSpeed" placeholder="mis. 3M/3M"></div>
+        <div class="fld" style="flex:0 0 auto;display:flex;align-items:flex-end"><button class="btn pri" onclick="addPackage()">+ Tambah</button></div>
+      </div>
+    </div>
+    <h2 class="sec">Daftar Paket <span class="count" id="pkgCount"></span></h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Paket</th><th class="r">Durasi</th><th class="r">Harga</th><th>Profil/Kecepatan</th><th class="r">Voucher</th><th></th></tr></thead>
+        <tbody id="pkgBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ BULANAN ============ -->
+  <section class="view" id="v-bulanan">
+    <div class="card">
+      <h2 class="sec" style="margin-top:0">Tambah Pelanggan Bulanan</h2>
+      <div class="row">
+        <div class="fld"><label>Nama pelanggan</label><input id="bName" placeholder="mis. Pak Budi"></div>
+        <div class="fld"><label>Username (login)</label><input id="bUser" placeholder="budi"></div>
+        <div class="fld"><label>Password (login)</label><input id="bPass" placeholder="mis. 12345"></div>
+        <div class="fld"><label>No. HP (opsional)</label><input id="bPhone" placeholder="08.."></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <div class="fld"><label>Paket (prefill)</label><select id="bPkg" onchange="subPickPkg()"></select></div>
+        <div class="fld"><label>Harga / bulan (Rp)</label><input id="bPrice" type="number" min="0" value="100000" class="mono"></div>
+        <div class="fld"><label>Profil kecepatan (MikroTik)</label><input id="bSpeed" placeholder="mis. 10M"></div>
+        <div class="fld" style="max-width:120px"><label>Masa (hari)</label><input id="bDays" type="number" min="1" value="30" class="mono"></div>
+        <div class="fld" style="flex:0 0 auto;display:flex;align-items:flex-end"><button class="btn pri" onclick="addSub()">+ Tambah (Lunas)</button></div>
+      </div>
+    </div>
+
+    <div class="stats" style="margin-top:18px" id="bStats"></div>
+
+    <h2 class="sec">Daftar Pelanggan <span class="count" id="subCount"></span></h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Nama</th><th>Login</th><th class="r">Harga</th><th>Jatuh tempo</th><th>Status</th><th></th></tr></thead>
+        <tbody id="subBody"></tbody>
+      </table>
+    </div>
+
+    <h2 class="sec">Skrip MikroTik (Bulanan)</h2>
+    <div class="card">
+      <p style="margin:0 0 12px;font-size:13px;color:var(--muted)">Membuat user login tetap + jadwal <b>nonaktif otomatis</b> pada tanggal jatuh tempo. Tempel di Terminal MikroTik. Saat pelanggan bayar, tekan <b>Perpanjang</b> lalu buat & tempel skrip lagi (aman diulang).</p>
+      <div class="row" style="margin-bottom:14px">
+        <button class="btn pri" onclick="genSubRsc()">⚙ Buat Skrip</button>
+        <button class="btn ghost" onclick="copySubRsc()">📋 Salin</button>
+        <button class="btn grn" onclick="downloadSubRsc()">⬇ Unduh .rsc</button>
+      </div>
+      <div class="codebox mono" id="subRscOut">Klik "Buat Skrip"…</div>
+    </div>
+  </section>
+
+  <!-- ============ LAPORAN ============ -->
+  <section class="view" id="v-report">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+      <div class="seg">
+        <button class="on" id="rbBulan" onclick="switchReport('bulan')">Bulanan</button>
+        <button id="rbAll" onclick="switchReport('all')">Keseluruhan</button>
+      </div>
+      <button class="btn grn" style="margin-left:auto" onclick="printReport()">🖨 Cetak / Simpan PDF</button>
+    </div>
+
+    <div id="reportBulan">
+      <div class="toolbar">
+        <div class="fld" style="max-width:190px;flex:0 0 auto"><label>Pilih bulan</label><input type="month" id="rMonth" onchange="renderMonthly()"></div>
+      </div>
+      <div class="stats" id="mStats"></div>
+      <h2 class="sec">Pendapatan Harian</h2>
+      <div class="chart" id="mChart"></div>
+      <h2 class="sec">Rincian per Paket</h2>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Paket</th><th class="r">Voucher Terpakai</th><th class="r">Menit</th><th class="r">Pendapatan</th></tr></thead>
+        <tbody id="mPkgBody"></tbody>
+        <tfoot><tr><td>Total</td><td class="r" id="mTotV">0</td><td class="r" id="mTotMin">0</td><td class="r" id="mTotRev">Rp 0</td></tr></tfoot>
+      </table></div>
+    </div>
+
+    <div id="reportAll" style="display:none">
+      <div class="stats" id="aStats"></div>
+      <h2 class="sec">Tren Pendapatan Bulanan</h2>
+      <div class="chart" id="aChart"></div>
+      <h2 class="sec">Rincian per Paket (Sepanjang Waktu)</h2>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Paket</th><th class="r">Dibuat</th><th class="r">Terpakai</th><th class="r">Menit</th><th class="r">Pendapatan</th></tr></thead>
+        <tbody id="aPkgBody"></tbody>
+        <tfoot><tr><td>Total</td><td class="r" id="aTotMade">0</td><td class="r" id="aTotUsed">0</td><td class="r" id="aTotMin">0</td><td class="r" id="aTotRev">Rp 0</td></tr></tfoot>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- ============ MIKROTIK ============ -->
+  <section class="view" id="v-mikrotik">
+    <div class="note ok">
+      <b>Arsitektur yang benar:</b> Starlink → <b>MikroTik (Hotspot + User Manager)</b> → Access Point → Pengguna.
+      MikroTik yang <b>memutus otomatis</b> saat waktu voucher habis. Aplikasi ini membuat voucher lalu mengirimkannya ke MikroTik.
+    </div>
+
+    <h2 class="sec">Ekspor ke MikroTik (cara paling andal)</h2>
+    <div class="card">
+      <p style="margin:0 0 12px;font-size:13px;color:var(--muted)">Buat skrip perintah dari voucher <b>belum terpakai</b>. Salin/unduh, lalu tempel di <b>Terminal MikroTik</b> (Winbox → New Terminal). Pengguna hotspot langsung dibuat dengan batas waktu — MikroTik otomatis memutus saat habis.</p>
+      <div class="row" style="margin-bottom:12px">
+        <div class="fld"><label>Server hotspot</label><input id="mkServer" value="all" placeholder="all"></div>
+        <div class="fld"><label>Batasi ke paket</label><select id="mkPkgFilter"><option value="">Semua paket</option></select></div>
+      </div>
+      <div class="row" style="margin-bottom:14px">
+        <button class="btn pri" onclick="genRsc()">⚙ Buat Skrip</button>
+        <button class="btn ghost" onclick="copyRsc()">📋 Salin</button>
+        <button class="btn grn" onclick="downloadRsc()">⬇ Unduh .rsc</button>
+      </div>
+      <div class="codebox mono" id="rscOut">Klik "Buat Skrip" untuk menghasilkan perintah…</div>
+    </div>
+
+    <h2 class="sec">Sambungan Langsung (opsional, tingkat lanjut)</h2>
+    <div class="card">
+      <p style="margin:0 0 12px;font-size:13px;color:var(--muted)">Kirim voucher langsung ke MikroTik lewat REST API (RouterOS v7). Perlu API aktif dan biasanya <b>halaman ini dihosting di jaringan yang sama</b> atau lewat proxy — karena keamanan browser (CORS) sering memblokir. Kalau gagal, pakai ekspor .rsc di atas.</p>
+      <div class="row" style="margin-bottom:10px">
+        <div class="fld"><label>Alamat (host:port)</label><input id="mkHost" placeholder="192.168.88.1"></div>
+        <div class="fld"><label>User</label><input id="mkUser" placeholder="admin"></div>
+        <div class="fld"><label>Password</label><input id="mkPass" type="password" placeholder="••••"></div>
+      </div>
+      <div class="row">
+        <button class="btn ghost" onclick="mkTest()">🔌 Tes Koneksi</button>
+        <button class="btn pri" onclick="mkPush()">⬆ Kirim voucher belum terpakai</button>
+      </div>
+      <div id="mkStatus" style="font-size:12.5px;color:var(--muted);margin-top:12px"></div>
+    </div>
+
+    <div class="note">
+      <b>Butuh bantuan pasang?</b> Bilang saja — saya bisa buatkan panduan langkah demi langkah setting MikroTik Hotspot + User Manager (mode bridge Starlink, profil kecepatan, halaman login/captive portal), atau proxy kecil supaya sambungan langsung bekerja.
+    </div>
+  </section>
+
+  <div class="foot-cred">Manajemen BIMI-STORE · WiFi Starlink Desa Tepian Terap · data tersimpan di perangkat ini</div>
+</div>
+
+<!-- Login modal -->
+<div class="ov" id="loginOv">
+  <div class="modal">
+    <h3>Masuk — BIMI-STORE</h3>
+    <p class="hint">Login untuk membuka data tersinkron (voucher, pelanggan, laporan).</p>
+    <div class="fld" style="margin-bottom:10px"><label>Email</label><input id="lgEmail" type="email" placeholder="email@contoh.com"></div>
+    <div class="fld" style="margin-bottom:6px"><label>Password</label><input id="lgPass" type="password" placeholder="••••••"></div>
+    <div id="lgStatus" style="font-size:12.5px;color:var(--muted);margin-top:12px"></div>
+    <div class="foot"><button class="btn ghost" onclick="hideLogin()">Nanti (mode lokal)</button><button class="btn pri" onclick="doLogin()">Masuk</button></div>
+  </div>
+</div>
+
+<!-- Settings modal -->
+<div class="ov" id="setOv">
+  <div class="modal">
+    <h3>Pengaturan</h3>
+    <p class="hint">Identitas voucher & peringatan waktu.</p>
+    <div class="fld" style="margin-bottom:12px"><label>Nama WiFi (SSID) di voucher</label><input id="sSsid" placeholder="WiFi Desa Tepian Terap"></div>
+    <div class="fld" style="margin-bottom:12px"><label>Nama penerbit (di kartu voucher)</label><input id="sOrg" placeholder="BIMI-STORE WiFi"></div>
+    <div class="fld" style="margin-bottom:6px"><label>Peringatan sisa waktu (menit)</label><input id="sWarn" type="number" min="0" class="mono"></div>
+    <div class="switch">
+      <div class="lbl">Bunyi peringatan<small>Beep saat mendekati & habis waktu</small></div>
+      <div class="toggle" id="tgBeep" onclick="this.classList.toggle('on')"><b></b></div>
+    </div>
+    <div style="margin:18px 0 8px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;font-weight:700;border-top:1px solid var(--line);padding-top:15px">Sinkron Cloud (Firebase)</div>
+    <div class="fld" style="margin-bottom:10px"><label>Kode toko (sama di semua HP)</label><input id="sStore" placeholder="bimistore-1"></div>
+    <div class="fld" style="margin-bottom:6px"><label>Konfigurasi Firebase (tempel config)</label><textarea id="sFb" rows="5" placeholder='{ apiKey:"...", databaseURL:"https://...", projectId:"..." }' style="width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:10px;color:var(--text);padding:10px 12px;font-size:12px;font-family:ui-monospace,monospace;outline:none;resize:vertical"></textarea></div>
+    <p class="hint" style="margin:7px 0 0">Isi untuk mengaktifkan sinkron antar perangkat. Kosongkan = mode lokal saja. Menyimpan perubahan sinkron akan memuat ulang aplikasi.</p>
+    <div style="margin-top:12px"><button class="btn ghost small" onclick="doLogout()">↩ Keluar akun</button></div>
+    <div class="foot"><button class="btn ghost" onclick="closeSettings()">Tutup</button><button class="btn pri" onclick="saveSettings()">Simpan</button></div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script>
+/* ====== KONFIGURASI FIREBASE ======================================
+   Cara 1 (disarankan): isi objek di bawah dengan config Firebase Gogo
+   SEBELUM upload ke GitHub — semua perangkat langsung tersambung.
+   Cara 2: biarkan kosong, lalu isi lewat ⚙ Pengaturan di aplikasi. */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDEbXCKnk33_EuqlFYjg_qwy9MUYFlEYco",
+  authDomain: "bimi-store-wifi.firebaseapp.com",
+  databaseURL: "https://bimi-store-wifi-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "bimi-store-wifi",
+  storageBucket: "bimi-store-wifi.firebasestorage.app",
+  messagingSenderId: "24425893381",
+  appId: "1:24425893381:web:c3f5feb2a8a812b2ca966c"
+};
+const STORE_ID = "bimistore-1"; // kode toko; samakan di semua perangkat
+/* ================================================================== */
+const KEY='wifi_starlink_mgmt_v1';
+let S={packages:[],vouchers:[],subs:[],settings:{ssid:'BIMI-STORE WiFi',org:'BIMI-STORE WiFi',warn:5,beep:true}};
+let vFilterMode='all', reportMode='bulan';
+
+/* ---------- persistence ---------- */
+function load(){
+  try{const r=localStorage.getItem(KEY);if(r)S=Object.assign(S,JSON.parse(r));}catch(e){}
+  if(!S.settings)S.settings={ssid:'BIMI-STORE WiFi',org:'BIMI-STORE WiFi',warn:5,beep:true};
+  if(!S.packages)S.packages=[];
+  if(!S.vouchers)S.vouchers=[];
+  if(!S.subs)S.subs=[];
+  if(typeof S.updatedAt!=='number')S.updatedAt=0;
+  if(!S.packages.length)seedPackages();
+}
+function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+function save(){S.updatedAt=Date.now();saveLocal();cloudPush();}
+function seedPackages(){
+  const d=[
+    ['Paket 1 Jam',0,1,0,3000,'3M/3M'],
+    ['Paket 3 Jam',0,3,0,5000,'5M/5M'],
+    ['Paket 1 Hari',1,0,0,10000,'5M/5M'],
+    ['Paket 1 Minggu',7,0,0,40000,'10M/10M'],
+    ['Paket 1 Bulan',30,0,0,100000,'10M/10M'],
+  ];
+  S.packages=d.map(x=>({id:uid(),name:x[0],days:x[1],hours:x[2],mins:x[3],price:x[4],speed:x[5]}));
+}
+
+/* ---------- helpers ---------- */
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const rp=n=>'Rp '+(Math.round(n)||0).toLocaleString('id-ID');
+function pkgSec(p){return (((p.days||0)*24+(p.hours||0))*60+(p.mins||0))*60;}
+function pkgLabel(p){
+  let s='';if(p.days)s+=p.days+' hr ';if(p.hours)s+=p.hours+' jam ';if(p.mins)s+=p.mins+' mnt';
+  return s.trim()||'0';
+}
+function fmt(sec){sec=Math.max(0,Math.round(sec));const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;const p=x=>String(x).padStart(2,'0');return p(h)+':'+p(m)+':'+p(s);}
+function mkUptime(sec){
+  sec=Math.round(sec);const d=Math.floor(sec/86400);sec-=d*86400;
+  const h=Math.floor(sec/3600);sec-=h*3600;const m=Math.floor(sec/60);const s=sec-m*60;
+  let o='';if(d)o+=d+'d';if(h)o+=h+'h';if(m)o+=m+'m';if(s)o+=s+'s';return o||'0s';
+}
+function esc(s){return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function beep(times=1,freq=880){
+  if(!S.settings.beep)return;
+  try{const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    for(let i=0;i<times;i++){const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=freq;o.type='sine';o.connect(g);g.connect(ctx.destination);
+      const t=ctx.currentTime+i*0.3;g.gain.setValueAtTime(0.001,t);g.gain.exponentialRampToValueAtTime(0.3,t+0.03);g.gain.exponentialRampToValueAtTime(0.001,t+0.25);o.start(t);o.stop(t+0.26);}
+  }catch(e){}
+}
+function ym(d){d=new Date(d);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
+
+/* ---------- tabs ---------- */
+document.getElementById('tabs').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-t]');if(!b)return;
+  document.querySelectorAll('#tabs button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('v-'+b.dataset.t).classList.add('active');
+  if(b.dataset.t==='report')renderReports();
+  if(b.dataset.t==='mikrotik')fillPkgSelects();
+});
+
+/* ---------- packages ---------- */
+function addPackage(){
+  const n=document.getElementById('pName').value.trim();if(!n){document.getElementById('pName').focus();return;}
+  S.packages.push({id:uid(),name:n,
+    days:parseInt(document.getElementById('pDay').value)||0,
+    hours:parseInt(document.getElementById('pHour').value)||0,
+    mins:parseInt(document.getElementById('pMin').value)||0,
+    price:parseFloat(document.getElementById('pPrice').value)||0,
+    speed:document.getElementById('pSpeed').value.trim()});
+  document.getElementById('pName').value='';document.getElementById('pSpeed').value='';
+  save();renderAll();
+}
+function delPackage(id){
+  const used=S.vouchers.some(v=>v.pkgId===id);
+  if(used){alert('Paket ini punya voucher. Hapus voucher terkait dulu.');return;}
+  if(!confirm('Hapus paket ini?'))return;
+  S.packages=S.packages.filter(p=>p.id!==id);save();renderAll();
+}
+function renderPackages(){
+  const b=document.getElementById('pkgBody');
+  if(!S.packages.length){b.innerHTML='<tr><td colspan="6" class="empty">Belum ada paket.</td></tr>';}
+  else b.innerHTML=S.packages.map(p=>{
+    const cnt=S.vouchers.filter(v=>v.pkgId===p.id).length;
+    return `<tr>
+      <td><b>${esc(p.name)}</b></td>
+      <td class="r">${pkgLabel(p)}</td>
+      <td class="r mono">${rp(p.price)}</td>
+      <td>${esc(p.speed||'—')}</td>
+      <td class="r">${cnt}</td>
+      <td class="r"><span class="btn small dangerbtn" onclick="delPackage('${p.id}')">✕</span></td>
+    </tr>`;}).join('');
+  document.getElementById('pkgCount').textContent=S.packages.length+' paket';
+}
+function fillPkgSelects(){
+  const opts=S.packages.map(p=>`<option value="${p.id}">${esc(p.name)} — ${rp(p.price)}</option>`).join('');
+  const g=document.getElementById('gPkg');if(g)g.innerHTML=opts||'<option value="">(buat paket dulu)</option>';
+  const mf=document.getElementById('mkPkgFilter');
+  if(mf)mf.innerHTML='<option value="">Semua paket</option>'+S.packages.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');
+  const bp=document.getElementById('bPkg');
+  if(bp)bp.innerHTML='<option value="">— pilih (prefill) —</option>'+S.packages.map(p=>`<option value="${p.id}">${esc(p.name)} — ${rp(p.price)}</option>`).join('');
+}
+
+/* ---------- vouchers ---------- */
+function randCode(type,len,prefix){
+  const digits='0123456789',alnum='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const set=type==='num'?digits:alnum;let c='';
+  for(let i=0;i<len;i++)c+=set[Math.floor(Math.random()*set.length)];
+  return (prefix||'')+c;
+}
+function genVouchers(){
+  const pid=document.getElementById('gPkg').value;
+  const p=S.packages.find(x=>x.id===pid);
+  if(!p){alert('Pilih paket dulu (buat di tab Paket).');return;}
+  const qty=Math.min(500,Math.max(1,parseInt(document.getElementById('gQty').value)||1));
+  const type=document.getElementById('gType').value;
+  const len=Math.min(12,Math.max(4,parseInt(document.getElementById('gLen').value)||6));
+  const prefix=document.getElementById('gPrefix').value.trim().toUpperCase();
+  const existing=new Set(S.vouchers.map(v=>v.code));
+  let made=0,guard=0;
+  while(made<qty&&guard<qty*40){
+    guard++;const code=randCode(type,len,prefix);
+    if(existing.has(code))continue;existing.add(code);
+    S.vouchers.unshift({id:uid(),code,pkgId:p.id,pkgName:p.name,durSec:pkgSec(p),price:p.price,speed:p.speed,
+      status:'unused',createdAt:Date.now(),activatedAt:null,remainSec:pkgSec(p),running:false,warned:false,endedAt:null});
+    made++;
+  }
+  save();renderAll();
+  document.querySelector('#tabs button[data-t="vouch"]').click();
+  showPreview(S.vouchers.filter(v=>v.status==='unused').slice(0,qty));
+}
+function vRemain(v){
+  if(v.status!=='active')return 0;
+  if(v.running)return Math.max(0,Math.round(((v.endAt||0)-Date.now())/1000));
+  return Math.max(0,Math.round(v.pausedRemain||0));
+}
+function sweepExpired(){
+  let ch=false;const warnSec=(S.settings.warn||0)*60;
+  S.vouchers.forEach(v=>{
+    if(v.status==='active'&&v.running){
+      const r=vRemain(v);
+      if(warnSec>0&&!v.warned&&r<=warnSec&&r>0){v.warned=true;beep(2,660);ch=true;}
+      if(r<=0){v.status='used';v.running=false;v.endedAt=v.endAt||Date.now();v.endAt=null;beep(3,440);ch=true;}
+    }
+  });
+  if(ch){save();renderAll();}
+  return ch;
+}
+function redeemVoucher(id){
+  const v=S.vouchers.find(x=>x.id===id);if(!v||v.status!=='unused')return;
+  v.status='active';v.activatedAt=Date.now();v.running=true;v.endAt=Date.now()+v.durSec*1000;v.pausedRemain=v.durSec;v.warned=false;
+  save();renderAll();
+}
+function togglePause(id){const v=S.vouchers.find(x=>x.id===id);if(!v||v.status!=='active')return;if(v.running){v.pausedRemain=vRemain(v);v.running=false;}else{v.endAt=Date.now()+(v.pausedRemain||0)*1000;v.running=true;}save();renderAll();}
+function addTime(id,mins){const v=S.vouchers.find(x=>x.id===id);if(!v||v.status!=='active')return;if(v.running){v.endAt=(v.endAt||Date.now())+mins*60000;}else{v.pausedRemain=(v.pausedRemain||0)+mins*60;}v.warned=false;save();renderAll();}
+function stopVoucher(id){const v=S.vouchers.find(x=>x.id===id);if(!v||v.status!=='active')return;v.status='used';v.running=false;v.endedAt=Date.now();v.endAt=null;v.pausedRemain=0;save();renderAll();}
+function delVoucher(id){const v=S.vouchers.find(x=>x.id===id);if(!v)return;if(v.status==='active'&&!confirm('Voucher sedang aktif. Hapus?'))return;S.vouchers=S.vouchers.filter(x=>x.id!==id);save();renderAll();}
+
+function filteredVouchers(){
+  const q=(document.getElementById('vSearch')?.value||'').toUpperCase();
+  return S.vouchers.filter(v=>(vFilterMode==='all'||v.status===vFilterMode)&&(!q||v.code.includes(q)));
+}
+function renderVouchers(){
+  const b=document.getElementById('vBody');const list=filteredVouchers();
+  const warnSec=(S.settings.warn||0)*60;
+  if(!list.length){b.innerHTML='<tr><td colspan="7" class="empty">Tidak ada voucher.</td></tr>';document.getElementById('vPrev').innerHTML='';return;}
+  b.innerHTML=list.slice(0,300).map(v=>{
+    let info='',act='';
+    if(v.status==='unused'){info='<span style="color:var(--dim)">siap dijual</span>';act=`<button class="btn small grn" onclick="redeemVoucher('${v.id}')">▶ Aktifkan</button>`;}
+    else if(v.status==='active'){const rem=vRemain(v);const w=rem<=warnSec&&warnSec>0;info=`<span class="mono" style="color:${w?'var(--amber)':'var(--ok)'}">${fmt(rem)} ${v.running?'':'(jeda)'}</span>`;act=`<button class="btn small dangerbtn" onclick="stopVoucher('${v.id}')">⏹ Putus</button>`;}
+    else{info='<span style="color:var(--dim)">selesai</span>';act='';}
+    return `<tr>
+      <td><span class="vcode mono">${esc(v.code)}</span></td>
+      <td>${esc(v.pkgName)}</td>
+      <td class="r">${fmt(v.durSec)}</td>
+      <td class="r mono">${rp(v.price)}</td>
+      <td><span class="pill ${v.status}">${v.status==='unused'?'Belum pakai':v.status==='active'?'Aktif':'Terpakai'}</span></td>
+      <td>${info}</td>
+      <td class="r" style="white-space:nowrap">${act} <span class="btn small ghost dangerbtn" onclick="delVoucher('${v.id}')">✕</span></td>
+    </tr>`;}).join('');
+  document.getElementById('vPrev').innerHTML='';
+}
+function showPreview(list){
+  const el=document.getElementById('vPrev');
+  el.innerHTML='<div style="grid-column:1/-1;font-size:12px;color:var(--muted)">Pratinjau '+list.length+' voucher baru — klik "Cetak yang tampil" untuk mencetak.</div>'+
+    list.map(v=>`<div class="vc"><div class="ssid">${esc(S.settings.ssid)}</div><div class="cd mono">${esc(v.code)}</div><div class="dp">${esc(v.pkgName)} · ${rp(v.price)}</div></div>`).join('');
+}
+document.getElementById('vFilter').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;document.querySelectorAll('#vFilter button').forEach(x=>x.classList.remove('on'));b.classList.add('on');vFilterMode=b.dataset.f;renderVouchers();});
+function delFiltered(){const list=filteredVouchers();if(!list.length)return;if(!confirm('Hapus '+list.length+' voucher yang tampil?'))return;const ids=new Set(list.map(v=>v.id));S.vouchers=S.vouchers.filter(v=>!ids.has(v.id));save();renderAll();}
+
+/* ---------- print vouchers ---------- */
+function printFiltered(){
+  const list=filteredVouchers();if(!list.length){alert('Tidak ada voucher untuk dicetak.');return;}
+  const cards=list.map(v=>`<div class="pc">
+    <div class="p-ssid">${esc(S.settings.ssid)}</div>
+    <div class="p-code">${esc(v.code)}</div>
+    <div class="p-info">${esc(v.pkgName)} · ${fmt(v.durSec)} · ${rp(v.price)}</div>
+    <div class="p-org">${esc(S.settings.org)}</div>
+  </div>`).join('');
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Cetak Voucher</title><style>
+    *{box-sizing:border-box;font-family:system-ui,Arial,sans-serif}body{margin:0;padding:10px;background:#fff;color:#111}
+    .sheet{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+    .pc{border:1px dashed #999;border-radius:8px;padding:10px 8px;text-align:center;page-break-inside:avoid}
+    .p-ssid{font-size:11px;color:#0e7490;font-weight:700}
+    .p-code{font-size:20px;font-weight:800;letter-spacing:2px;margin:5px 0;font-family:ui-monospace,monospace}
+    .p-info{font-size:10px;color:#444}.p-org{font-size:9px;color:#888;margin-top:6px}
+    @media print{@page{margin:8mm}}
+  </style></head><body onload="print()"><div class="sheet">${cards}</div></body></html>`);
+  w.document.close();
+}
+
+/* ---------- cetak laporan pendapatan (PDF) ---------- */
+function printReport(){
+  const org=esc(S.settings.org||''),ssid=esc(S.settings.ssid||'');
+  const now=new Date();
+  const genStr=now.toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'})+' '+now.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+  const MN=['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  let periodLabel,bodyHtml,gRev,gUsed,gMin,gSub;
+
+  if(reportMode==='bulan'){
+    const sel=document.getElementById('rMonth').value||ym(Date.now());
+    const [yy,mm]=sel.split('-').map(Number);
+    periodLabel='Bulan '+MN[mm]+' '+yy;
+    const used=S.vouchers.filter(v=>v.activatedAt&&ym(v.activatedAt)===sel);
+    const vRev=used.reduce((a,v)=>a+v.price,0);gUsed=used.length;gMin=used.reduce((a,v)=>a+v.durSec/60,0);
+    const subP=[];(S.subs||[]).forEach(s=>(s.payments||[]).forEach(p=>{if(ym(p.at)===sel)subP.push(p);}));
+    gSub=subP.reduce((a,p)=>a+(p.amount||0),0);gRev=vRev+gSub;
+    const rows=S.packages.map(p=>{const vv=used.filter(v=>v.pkgId===p.id);return{name:p.name,cnt:vv.length,min:vv.reduce((a,v)=>a+v.durSec/60,0),rev:vv.reduce((a,v)=>a+v.price,0)};}).filter(r=>r.cnt>0);
+    let rh=rows.map(r=>`<tr><td>${esc(r.name)}</td><td class="r">${r.cnt}</td><td class="r">${Math.round(r.min).toLocaleString('id-ID')}</td><td class="r">${rp(r.rev)}</td></tr>`).join('');
+    if(gSub)rh+=`<tr><td>Langganan Bulanan</td><td class="r">${subP.length}</td><td class="r">—</td><td class="r">${rp(gSub)}</td></tr>`;
+    if(!rh)rh='<tr><td colspan="4" style="text-align:center;color:#888">Tidak ada pemasukan.</td></tr>';
+    bodyHtml='<h3>Rincian Pemasukan</h3><table><thead><tr><th>Item</th><th class="r">Jumlah</th><th class="r">Menit</th><th class="r">Pendapatan</th></tr></thead><tbody>'+rh+
+      `</tbody><tfoot><tr><td>Total</td><td class="r">${gUsed+subP.length}</td><td class="r">${Math.round(gMin).toLocaleString('id-ID')}</td><td class="r">${rp(gRev)}</td></tr></tfoot></table>`;
+    const daily={};used.forEach(v=>{const d=new Date(v.activatedAt).getDate();daily[d]=(daily[d]||0)+v.price;});subP.forEach(p=>{const d=new Date(p.at).getDate();daily[d]=(daily[d]||0)+(p.amount||0);});
+    const days=Object.keys(daily).map(Number).sort((a,b)=>a-b);
+    if(days.length)bodyHtml+='<h3>Pendapatan Harian</h3><table><thead><tr><th>Tanggal</th><th class="r">Pendapatan</th></tr></thead><tbody>'+
+      days.map(d=>`<tr><td>${String(d).padStart(2,'0')} ${MN[mm]} ${yy}</td><td class="r">${rp(daily[d])}</td></tr>`).join('')+'</tbody></table>';
+  }else{
+    periodLabel='Keseluruhan (Sepanjang Waktu)';
+    const used=S.vouchers.filter(v=>v.activatedAt);
+    const vRev=used.reduce((a,v)=>a+v.price,0);gUsed=used.length;gMin=used.reduce((a,v)=>a+v.durSec/60,0);
+    const subP=[];(S.subs||[]).forEach(s=>(s.payments||[]).forEach(p=>subP.push(p)));
+    gSub=subP.reduce((a,p)=>a+(p.amount||0),0);gRev=vRev+gSub;
+    const rows=S.packages.map(p=>{const uu=S.vouchers.filter(v=>v.pkgId===p.id&&v.activatedAt);return{name:p.name,used:uu.length,rev:uu.reduce((a,v)=>a+v.price,0)};}).filter(r=>r.used>0);
+    let rh=rows.map(r=>`<tr><td>${esc(r.name)}</td><td class="r">${r.used}</td><td class="r">${rp(r.rev)}</td></tr>`).join('');
+    if(gSub)rh+=`<tr><td>Langganan Bulanan</td><td class="r">${subP.length}</td><td class="r">${rp(gSub)}</td></tr>`;
+    if(!rh)rh='<tr><td colspan="3" style="text-align:center;color:#888">Belum ada data.</td></tr>';
+    bodyHtml='<h3>Rincian Pemasukan</h3><table><thead><tr><th>Item</th><th class="r">Terpakai</th><th class="r">Pendapatan</th></tr></thead><tbody>'+rh+
+      `</tbody><tfoot><tr><td>Total</td><td class="r">${gUsed+subP.length}</td><td class="r">${rp(gRev)}</td></tr></tfoot></table>`;
+    const map={};used.forEach(v=>{const k=ym(v.activatedAt);map[k]=(map[k]||0)+v.price;});subP.forEach(p=>{const k=ym(p.at);map[k]=(map[k]||0)+(p.amount||0);});
+    const keys=Object.keys(map).sort();
+    if(keys.length)bodyHtml+='<h3>Pendapatan per Bulan</h3><table><thead><tr><th>Bulan</th><th class="r">Pendapatan</th></tr></thead><tbody>'+
+      keys.map(k=>{const [y,mo]=k.split('-');return `<tr><td>${MN[+mo]} ${y}</td><td class="r">${rp(map[k])}</td></tr>`;}).join('')+'</tbody></table>';
+  }
+
+  const summary=`<div class="sum">
+    <div class="box"><span>Voucher Terpakai</span><b>${gUsed}</b></div>
+    <div class="box"><span>Langganan Bulanan</span><b>${rp(gSub||0)}</b></div>
+    <div class="box hl"><span>Total Pendapatan</span><b>${rp(gRev)}</b></div>
+  </div>`;
+
+  const html='<!DOCTYPE html><html lang="id"><head><meta charset="utf-8"><title>Laporan Pendapatan WiFi</title><style>'+
+    '*{box-sizing:border-box;font-family:system-ui,Arial,sans-serif}'+
+    'body{margin:0;padding:28px 34px;color:#111;font-size:12.5px}'+
+    '.hd{display:flex;align-items:center;gap:14px;border-bottom:3px solid #0e7490;padding-bottom:12px}'+
+    '.hd .m{width:46px;height:46px;border-radius:10px;background:linear-gradient(120deg,#22d3ee,#6366f1);flex:0 0 auto}'+
+    '.hd h1{margin:0;font-size:18px}.hd .s{color:#555;font-size:12px;margin-top:2px}'+
+    '.per{color:#0e7490;font-weight:700;margin:14px 0 4px}'+
+    '.sum{display:flex;gap:10px;margin:14px 0 6px}'+
+    '.sum .box{flex:1;border:1px solid #ddd;border-radius:8px;padding:10px 12px}'+
+    '.sum .box span{display:block;font-size:10px;color:#666;text-transform:uppercase;letter-spacing:.5px}'+
+    '.sum .box b{font-size:18px}'+
+    '.sum .box.hl{background:#ecfeff;border-color:#a5f3fc}.sum .box.hl b{color:#0e7490}'+
+    'h3{font-size:13px;margin:20px 0 6px;color:#333}'+
+    'table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:6px}'+
+    'th,td{border:1px solid #ddd;padding:7px 9px;text-align:left}'+
+    'th{background:#f3f4f6;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px}'+
+    'td.r,th.r{text-align:right}tfoot td{font-weight:700;background:#f9fafb}'+
+    '.sign{margin-top:44px;display:flex;justify-content:space-between}'+
+    '.sign div{width:44%;text-align:center;font-size:12px}'+
+    '.sign .line{margin-top:58px;border-top:1px solid #333;padding-top:4px;font-weight:600}'+
+    '.ft{margin-top:24px;color:#999;font-size:10px;text-align:center;border-top:1px solid #eee;padding-top:8px}'+
+    '@media print{@page{margin:14mm}body{padding:0}}'+
+    '</style></head><body>'+
+    `<div class="hd"><div class="m"></div><div><h1>Laporan Pendapatan WiFi</h1><div class="s">${ssid||'-'} &middot; ${org||'-'}</div></div></div>`+
+    `<div class="per">Periode: ${periodLabel}</div>`+
+    summary+bodyHtml+
+    `<div class="sign"><div style="margin-left:auto">Hormat kami,<div class="line">${org||'BIMI-STORE WiFi'}</div></div></div>`+
+    `<div class="ft">Dicetak ${genStr} &middot; Manajemen BIMI-STORE</div>`+
+    '</body></html>';
+
+  const w=window.open('','_blank');
+  if(!w){alert('Popup diblokir. Izinkan popup untuk mencetak.');return;}
+  w.document.write(html);w.document.close();
+  setTimeout(()=>{try{w.focus();w.print();}catch(e){}},400);
+}
+
+/* ---------- Pelanggan Bulanan ---------- */
+function incomeEvents(){
+  const ev=[];
+  S.vouchers.forEach(v=>{if(v.activatedAt)ev.push({at:v.activatedAt,amount:v.price||0});});
+  (S.subs||[]).forEach(s=>(s.payments||[]).forEach(p=>ev.push({at:p.at,amount:p.amount||0})));
+  return ev;
+}
+function subPickPkg(){
+  const p=S.packages.find(x=>x.id===document.getElementById('bPkg').value);if(!p)return;
+  document.getElementById('bPrice').value=p.price||0;
+  if(p.speed)document.getElementById('bSpeed').value=p.speed;
+  document.getElementById('bDays').value=(p.days&&!p.hours&&!p.mins)?p.days:30;
+}
+function addSub(){
+  const name=document.getElementById('bName').value.trim();
+  const user=document.getElementById('bUser').value.trim();
+  if(!name||!user){alert('Isi nama dan username.');return;}
+  const days=Math.max(1,parseInt(document.getElementById('bDays').value)||30);
+  const price=parseFloat(document.getElementById('bPrice').value)||0;
+  const now=Date.now();S.subs=S.subs||[];
+  S.subs.unshift({id:uid(),name,user,pass:document.getElementById('bPass').value.trim(),phone:document.getElementById('bPhone').value.trim(),
+    speed:document.getElementById('bSpeed').value.trim(),price,days,createdAt:now,dueAt:now+days*86400000,active:true,payments:[{at:now,amount:price}]});
+  ['bName','bUser','bPass','bPhone','bSpeed'].forEach(id=>document.getElementById(id).value='');
+  save();renderAll();
+}
+function renewSub(id){
+  const s=(S.subs||[]).find(x=>x.id===id);if(!s)return;const now=Date.now();
+  s.payments=s.payments||[];s.payments.push({at:now,amount:s.price||0});
+  const base=s.dueAt>now?s.dueAt:now;s.dueAt=base+(s.days||30)*86400000;s.active=true;
+  save();renderAll();
+}
+function suspendSub(id){const s=(S.subs||[]).find(x=>x.id===id);if(!s)return;s.active=!s.active;save();renderAll();}
+function delSub(id){const s=(S.subs||[]).find(x=>x.id===id);if(!s)return;if(!confirm('Hapus pelanggan "'+s.name+'"?'))return;S.subs=S.subs.filter(x=>x.id!==id);save();renderAll();}
+function subState(s){
+  const now=Date.now();
+  if(!s.active)return{t:'Nonaktif',cls:'off',days:0};
+  const left=Math.ceil((s.dueAt-now)/86400000);
+  if(left<0)return{t:'Jatuh tempo',cls:'exp',days:left};
+  return{t:'Aktif',cls:'ok',days:left};
+}
+function renderSubs(){
+  const subs=S.subs||[];const now=Date.now(),nowYm=ym(now);
+  const aktif=subs.filter(s=>s.active&&s.dueAt>now).length;
+  const tempo=subs.filter(s=>s.active&&(s.dueAt-now)/86400000<=3).length;
+  const revM=subs.reduce((a,s)=>a+(s.payments||[]).filter(p=>ym(p.at)===nowYm).reduce((b,p)=>b+(p.amount||0),0),0);
+  const bs=document.getElementById('bStats');
+  if(bs)bs.innerHTML=statBox('Pelanggan Aktif',aktif)+statBox('Jatuh Tempo ≤3 hari',tempo)+statBox('Pendapatan Bulan Ini',rp(revM))+statBox('Total Pelanggan',subs.length);
+  const tb=document.getElementById('subBody');if(!tb)return;
+  if(!subs.length){tb.innerHTML='<tr><td colspan="6" class="empty">Belum ada pelanggan bulanan.</td></tr>';document.getElementById('subCount').textContent='';return;}
+  tb.innerHTML=subs.map(s=>{
+    const st=subState(s);
+    const due=new Date(s.dueAt).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
+    const info=st.t==='Aktif'?st.days+' hari lagi':(st.t==='Jatuh tempo'?'telat '+(-st.days)+' hari':'—');
+    const infoColor=st.cls==='exp'?'var(--danger)':(st.cls==='ok'&&st.days<=3?'var(--amber)':'var(--muted)');
+    const pill=st.t==='Aktif'?'<span class="pill active">Aktif</span>':st.t==='Jatuh tempo'?'<span class="pill" style="color:var(--danger);background:rgba(251,91,110,.12);box-shadow:inset 0 0 0 1px rgba(251,91,110,.3)">Jatuh tempo</span>':'<span class="pill used">Nonaktif</span>';
+    return `<tr>
+      <td><b>${esc(s.name)}</b>${s.phone?'<div style="font-size:11px;color:var(--muted)">'+esc(s.phone)+'</div>':''}</td>
+      <td class="mono">${esc(s.user)}${s.pass?' / '+esc(s.pass):''}</td>
+      <td class="r mono">${rp(s.price)}</td>
+      <td>${due}<div style="font-size:11px;color:${infoColor}">${info}</div></td>
+      <td>${pill}</td>
+      <td class="r" style="white-space:nowrap">
+        <button class="btn small grn" onclick="renewSub('${s.id}')">↻ Perpanjang</button>
+        <button class="btn small ghost" onclick="suspendSub('${s.id}')">${s.active?'Nonaktif':'Aktifkan'}</button>
+        <button class="btn small ghost dangerbtn" onclick="delSub('${s.id}')">✕</button>
+      </td></tr>`;
+  }).join('');
+  document.getElementById('subCount').textContent=subs.length+' pelanggan';
+}
+function schedDate(ms){const d=new Date(ms);const M=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];return M[d.getMonth()]+'/'+String(d.getDate()).padStart(2,'0')+'/'+d.getFullYear();}
+function subRscText(){
+  const subs=(S.subs||[]).filter(s=>s.active);if(!subs.length)return null;
+  const lines=['# Pelanggan bulanan BIMI-STORE - tempel di Terminal MikroTik','# User login tetap + jadwal nonaktif otomatis pd tanggal jatuh tempo'];
+  subs.forEach(s=>{
+    const u=s.user,pass=s.pass||s.user,prof=s.speed?` profile="${s.speed}"`:'';
+    const dd=new Date(s.dueAt).toLocaleDateString('id-ID');
+    lines.push('');
+    lines.push(`/ip hotspot user remove [find name="${u}"]`);
+    lines.push(`/ip hotspot user add name="${u}" password="${pass}"${prof} comment="Bulanan: ${s.name} (tempo ${dd})"`);
+    lines.push(`/system scheduler remove [find name="exp-${u}"]`);
+    lines.push(`/system scheduler add name="exp-${u}" start-date=${schedDate(s.dueAt)} start-time=00:00:00 on-event="/ip hotspot user disable [find name=\\"${u}\\"]" comment="nonaktif otomatis jatuh tempo"`);
+  });
+  return lines.join('\n');
+}
+function genSubRsc(){const t=subRscText();document.getElementById('subRscOut').textContent=t||'Belum ada pelanggan aktif.';}
+function copySubRsc(){const t=document.getElementById('subRscOut').textContent;if(t&&navigator.clipboard)navigator.clipboard.writeText(t);}
+function downloadSubRsc(){const t=subRscText();if(!t){alert('Belum ada pelanggan aktif.');return;}const b=new Blob([t],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='pelanggan-bulanan-mikrotik.rsc';a.click();URL.revokeObjectURL(a.href);}
+
+/* ---------- timer loop ---------- */
+/* ---------- timer loop ---------- */
+setInterval(()=>{
+  if(sweepExpired())return;   // ada voucher habis → sudah tersimpan & re-render
+  tickActive();               // perbarui tampilan tiap detik (tanpa menyimpan)
+},1000);
+function tickActive(){
+  const warnSec=(S.settings.warn||0)*60;
+  S.vouchers.forEach(v=>{
+    if(v.status!=='active')return;
+    const rem=vRemain(v);
+    const t=document.getElementById('t_'+v.id);
+    if(t){t.textContent=fmt(rem);const w=rem<=warnSec&&warnSec>0;t.className='time mono'+(w?' tw':'');}
+    const bi=document.getElementById('b_'+v.id);
+    if(bi){const pct=v.durSec?Math.max(0,rem/v.durSec*100):0;bi.style.width=pct+'%';const w=rem<=warnSec&&warnSec>0;bi.parentElement.className='bar'+(w?' w':'');}
+  });
+}
+
+/* ---------- dashboard ---------- */
+function renderDash(){
+  const active=S.vouchers.filter(v=>v.status==='active');
+  const warnSec=(S.settings.warn||0)*60;
+  const g=document.getElementById('activeGrid');
+  g.innerHTML=active.map(v=>{
+    const rem=vRemain(v);const pct=v.durSec?Math.max(0,rem/v.durSec*100):0;const w=rem<=warnSec&&warnSec>0;
+    return `<div class="scard${w?' warn':''}">
+      <div class="top"><span class="dot ${v.running?'run':'pause'}"></span><span class="nm mono">${esc(v.code)}</span><span class="meta">${esc(v.pkgName)}</span></div>
+      <div class="time mono${w?' tw':''}" id="t_${v.id}">${fmt(rem)}</div>
+      <div class="sub">${v.running?'Berjalan':'Dijeda'} · jatah ${fmt(v.durSec)}${v.speed?' · '+esc(v.speed):''}</div>
+      <div class="bar${w?' w':''}"><i id="b_${v.id}" style="width:${pct}%"></i></div>
+      <div class="ctrls">
+        <button class="btn small ${v.running?'warnbtn':'pri'}" onclick="togglePause('${v.id}')">${v.running?'⏸ Jeda':'▶ Lanjut'}</button>
+        <button class="btn small ghost" onclick="addTime('${v.id}',15)">+15m</button>
+        <button class="btn small ghost" onclick="addTime('${v.id}',60)">+1j</button>
+        <button class="btn small dangerbtn" onclick="if(confirm('Putus & akhiri voucher ini?'))stopVoucher('${v.id}')">⏹ Putus</button>
+      </div></div>`;
+  }).join('');
+  document.getElementById('activeEmpty').style.display=active.length?'none':'block';
+  document.getElementById('actCount').textContent=active.length?active.length+' aktif':'';
+
+  const nowYm=ym(Date.now());
+  const ev=incomeEvents();
+  const revMonth=ev.filter(e=>ym(e.at)===nowYm).reduce((a,e)=>a+e.amount,0);
+  const revAll=ev.reduce((a,e)=>a+e.amount,0);
+  document.getElementById('stActive').textContent=active.length;
+  document.getElementById('stUnused').textContent=S.vouchers.filter(v=>v.status==='unused').length;
+  document.getElementById('stRevMonth').textContent=rp(revMonth);
+  document.getElementById('stRevAll').textContent=rp(revAll);
+}
+
+/* ---------- reports ---------- */
+function switchReport(m){
+  reportMode=m;
+  document.getElementById('rbBulan').classList.toggle('on',m==='bulan');
+  document.getElementById('rbAll').classList.toggle('on',m==='all');
+  document.getElementById('reportBulan').style.display=m==='bulan'?'block':'none';
+  document.getElementById('reportAll').style.display=m==='all'?'block':'none';
+  renderReports();
+}
+function renderReports(){if(reportMode==='bulan')renderMonthly();else renderOverall();}
+function statBox(k,v){return `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div></div>`;}
+function chart(el,labels,values,fmtFn){
+  const max=Math.max(1,...values);
+  el.innerHTML=labels.map((lb,i)=>{
+    const h=values[i]/max*100;
+    return `<div class="col"><div class="vl">${values[i]?(fmtFn?fmtFn(values[i]):values[i]):''}</div><div class="bar2" style="height:${h}%"></div><div class="lb">${lb}</div></div>`;
+  }).join('');
+}
+function renderMonthly(){
+  const inp=document.getElementById('rMonth');
+  if(!inp.value)inp.value=ym(Date.now());
+  const sel=inp.value;
+  const used=S.vouchers.filter(v=>v.activatedAt&&ym(v.activatedAt)===sel);
+  const vRev=used.reduce((a,v)=>a+v.price,0);
+  const mins=used.reduce((a,v)=>a+(v.durSec/60),0);
+  const subP=[];(S.subs||[]).forEach(s=>(s.payments||[]).forEach(p=>{if(ym(p.at)===sel)subP.push(p);}));
+  const subRev=subP.reduce((a,p)=>a+(p.amount||0),0);
+  const rev=vRev+subRev;
+  document.getElementById('mStats').innerHTML=
+    statBox('Voucher Terpakai',used.length)+
+    statBox('Langganan Bulanan',rp(subRev))+
+    statBox('Pendapatan',rp(rev))+
+    statBox('Total Menit',Math.round(mins).toLocaleString('id-ID'));
+  const [yy,mm]=sel.split('-').map(Number);
+  const days=new Date(yy,mm,0).getDate();
+  const daily=Array(days).fill(0);
+  used.forEach(v=>{daily[new Date(v.activatedAt).getDate()-1]+=v.price;});
+  subP.forEach(p=>{daily[new Date(p.at).getDate()-1]+=(p.amount||0);});
+  const labels=daily.map((_,i)=>i+1).map(d=>d%5===0||d===1?d:'');
+  chart(document.getElementById('mChart'),labels,daily,x=>x>=1000?Math.round(x/1000)+'k':x);
+  const rows=S.packages.map(p=>{const vv=used.filter(v=>v.pkgId===p.id);return{name:p.name,cnt:vv.length,min:vv.reduce((a,v)=>a+v.durSec/60,0),rev:vv.reduce((a,v)=>a+v.price,0)};}).filter(r=>r.cnt>0);
+  let html=rows.map(r=>`<tr><td>${esc(r.name)}</td><td class="r">${r.cnt}</td><td class="r">${Math.round(r.min).toLocaleString('id-ID')}</td><td class="r mono">${rp(r.rev)}</td></tr>`).join('');
+  if(subRev)html+=`<tr><td>Langganan Bulanan</td><td class="r">${subP.length}</td><td class="r">—</td><td class="r mono">${rp(subRev)}</td></tr>`;
+  document.getElementById('mPkgBody').innerHTML=html||'<tr><td colspan="4" class="empty">Belum ada pemasukan bulan ini.</td></tr>';
+  document.getElementById('mTotV').textContent=used.length+subP.length;
+  document.getElementById('mTotMin').textContent=Math.round(mins).toLocaleString('id-ID');
+  document.getElementById('mTotRev').textContent=rp(rev);
+}
+function renderOverall(){
+  const made=S.vouchers.length;
+  const usedList=S.vouchers.filter(v=>v.activatedAt);
+  const vRev=usedList.reduce((a,v)=>a+v.price,0);
+  const mins=usedList.reduce((a,v)=>a+v.durSec/60,0);
+  const subP=[];(S.subs||[]).forEach(s=>(s.payments||[]).forEach(p=>subP.push(p)));
+  const subRev=subP.reduce((a,p)=>a+(p.amount||0),0);
+  const rev=vRev+subRev;
+  const subsActive=(S.subs||[]).filter(s=>s.active&&s.dueAt>Date.now()).length;
+  document.getElementById('aStats').innerHTML=
+    statBox('Voucher Terpakai',usedList.length)+
+    statBox('Pelanggan Bln Aktif',subsActive)+
+    statBox('Pendapatan Total',rp(rev))+
+    statBox('Voucher Aktif',S.vouchers.filter(v=>v.status==='active').length);
+  const map={};usedList.forEach(v=>{const k=ym(v.activatedAt);map[k]=(map[k]||0)+v.price;});
+  subP.forEach(p=>{const k=ym(p.at);map[k]=(map[k]||0)+(p.amount||0);});
+  const months=[];const now=new Date();
+  for(let i=11;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push(ym(d));}
+  const vals=months.map(m=>map[m]||0);
+  const labels=months.map(m=>{const [y,mo]=m.split('-');return ['','Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'][+mo]+' '+y.slice(2);});
+  chart(document.getElementById('aChart'),labels,vals,x=>x>=1000?Math.round(x/1000)+'k':x);
+  const rows=S.packages.map(p=>{const all=S.vouchers.filter(v=>v.pkgId===p.id);const uu=all.filter(v=>v.activatedAt);return{name:p.name,made:all.length,used:uu.length,min:uu.reduce((a,v)=>a+v.durSec/60,0),rev:uu.reduce((a,v)=>a+v.price,0)};}).filter(r=>r.made>0);
+  let html=rows.map(r=>`<tr><td>${esc(r.name)}</td><td class="r">${r.made}</td><td class="r">${r.used}</td><td class="r">${Math.round(r.min).toLocaleString('id-ID')}</td><td class="r mono">${rp(r.rev)}</td></tr>`).join('');
+  if(subRev)html+=`<tr><td>Langganan Bulanan</td><td class="r">—</td><td class="r">${subP.length}</td><td class="r">—</td><td class="r mono">${rp(subRev)}</td></tr>`;
+  document.getElementById('aPkgBody').innerHTML=html||'<tr><td colspan="5" class="empty">Belum ada data.</td></tr>';
+  document.getElementById('aTotMade').textContent=made;
+  document.getElementById('aTotUsed').textContent=usedList.length+subP.length;
+  document.getElementById('aTotMin').textContent=Math.round(mins).toLocaleString('id-ID');
+  document.getElementById('aTotRev').textContent=rp(rev);
+}
+
+/* ---------- MikroTik ---------- */
+function rscForVouchers(list,server){
+  const lines=['# Import ke MikroTik: tempel di Terminal (Winbox > New Terminal)','/ip hotspot user'];
+  list.forEach(v=>{
+    const prof=v.speed?` profile="${v.speed}"`:'';
+    lines.push(`add name="${v.code}" password="${v.code}" limit-uptime=${mkUptime(v.durSec)} server=${server||'all'}${prof} comment="${v.pkgName}"`);
+  });
+  return lines.join('\n');
+}
+function selectedUnused(){
+  const pf=document.getElementById('mkPkgFilter').value;
+  return S.vouchers.filter(v=>v.status==='unused'&&(!pf||v.pkgId===pf));
+}
+function genRsc(){
+  const list=selectedUnused();
+  if(!list.length){document.getElementById('rscOut').textContent='Tidak ada voucher belum terpakai untuk paket terpilih.';return;}
+  document.getElementById('rscOut').textContent=rscForVouchers(list,document.getElementById('mkServer').value.trim());
+}
+function copyRsc(){const t=document.getElementById('rscOut').textContent;if(!t)return;navigator.clipboard?.writeText(t).then(()=>flash(document.getElementById('mkStatus'),'✔ Skrip disalin.'),()=>{});}
+function downloadRsc(){
+  const list=selectedUnused();if(!list.length){alert('Tidak ada voucher belum terpakai.');return;}
+  const t=rscForVouchers(list,document.getElementById('mkServer').value.trim());
+  const blob=new Blob([t],{type:'text/plain'});const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download='voucher-mikrotik-'+new Date().toISOString().slice(0,10)+'.rsc';a.click();URL.revokeObjectURL(a.href);
+}
+function flash(el,msg){el.textContent=msg;}
+function mkBase(){const h=document.getElementById('mkHost').value.trim();if(!h)return null;return (h.startsWith('http')?h:'http://'+h);}
+async function mkTest(){
+  const base=mkBase();const st=document.getElementById('mkStatus');
+  if(!base){st.textContent='Isi alamat MikroTik dulu.';return;}
+  st.textContent='Menghubungi '+base+' …';
+  const auth='Basic '+btoa(document.getElementById('mkUser').value+':'+document.getElementById('mkPass').value);
+  try{
+    const r=await fetch(base+'/rest/system/resource',{headers:{Authorization:auth}});
+    if(r.ok){const d=await r.json();st.innerHTML='✔ Terhubung. RouterOS '+(d.version||'?')+', uptime '+(d.uptime||'?');}
+    else st.textContent='Gagal: HTTP '+r.status+' (cek user/password & aktifkan www-ssl/REST).';
+  }catch(e){st.innerHTML='✖ Tidak bisa terhubung dari browser (biasanya diblok CORS/mixed-content). Pakai <b>ekspor .rsc</b> di atas, atau minta saya buatkan proxy.';}
+}
+async function mkPush(){
+  const base=mkBase();const st=document.getElementById('mkStatus');
+  if(!base){st.textContent='Isi alamat MikroTik dulu.';return;}
+  const list=selectedUnused();if(!list.length){st.textContent='Tidak ada voucher belum terpakai.';return;}
+  if(!confirm('Kirim '+list.length+' voucher ke MikroTik?'))return;
+  const auth='Basic '+btoa(document.getElementById('mkUser').value+':'+document.getElementById('mkPass').value);
+  let ok=0,fail=0;st.textContent='Mengirim…';
+  for(const v of list){
+    try{
+      const body={name:v.code,password:v.code,'limit-uptime':mkUptime(v.durSec),server:document.getElementById('mkServer').value.trim()||'all',comment:v.pkgName};
+      if(v.speed)body.profile=v.speed;
+      const r=await fetch(base+'/rest/ip/hotspot/user',{method:'PUT',headers:{Authorization:auth,'Content-Type':'application/json'},body:JSON.stringify(body)});
+      r.ok?ok++:fail++;
+    }catch(e){fail++;}
+  }
+  st.innerHTML=`Selesai: ${ok} berhasil, ${fail} gagal.`+(fail?' Jika semua gagal, kemungkinan CORS — pakai ekspor .rsc.':'');
+}
+
+/* ---------- settings ---------- */
+function openSettings(){
+  document.getElementById('sSsid').value=S.settings.ssid||'';
+  document.getElementById('sOrg').value=S.settings.org||'';
+  document.getElementById('sWarn').value=S.settings.warn||0;
+  document.getElementById('tgBeep').classList.toggle('on',!!S.settings.beep);
+  document.getElementById('sFb').value=localStorage.getItem('bimi_fbcfg')||'';
+  document.getElementById('sStore').value=localStorage.getItem('bimi_store')||STORE_ID;
+  updateSyncBadge();
+  document.getElementById('setOv').classList.add('show');
+}
+function closeSettings(){document.getElementById('setOv').classList.remove('show');}
+function saveSettings(){
+  S.settings.ssid=document.getElementById('sSsid').value.trim()||'WiFi';
+  S.settings.org=document.getElementById('sOrg').value.trim();
+  S.settings.warn=parseInt(document.getElementById('sWarn').value)||0;
+  S.settings.beep=document.getElementById('tgBeep').classList.contains('on');
+  const fb=document.getElementById('sFb').value.trim();
+  const st=document.getElementById('sStore').value.trim()||'bimistore-1';
+  const changedCloud=(fb!==(localStorage.getItem('bimi_fbcfg')||''))||(st!==(localStorage.getItem('bimi_store')||''));
+  if(fb)localStorage.setItem('bimi_fbcfg',fb);else localStorage.removeItem('bimi_fbcfg');
+  localStorage.setItem('bimi_store',st);
+  save();closeSettings();renderAll();
+  if(changedCloud){alert('Pengaturan sinkron disimpan. Aplikasi dimuat ulang.');location.reload();}
+}
+
+/* ---------- import/export ---------- */
+function exportData(){
+  const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='manajemen-wifi-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(a.href);
+}
+function importData(e){
+  const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{const d=JSON.parse(r.result);if(!d.vouchers&&!d.packages)throw 0;if(!confirm('Ganti semua data dengan file ini?'))return;
+    S=Object.assign({packages:[],vouchers:[],settings:S.settings},d);S.updatedAt=Date.now();saveLocal();cloudPush();renderAll();}catch(err){alert('File tidak valid.');}};
+  r.readAsText(f);e.target.value='';
+}
+
+/* ---------- render all ---------- */
+function renderAll(){fillPkgSelects();renderDash();renderVouchers();renderPackages();renderSubs();if(document.getElementById('v-report').classList.contains('active'))renderReports();}
+document.querySelectorAll('.ov').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('show');}));
+
+/* ---------- Cloud sync (Firebase) ---------- */
+let _ref=null,cloudReady=false,firstSnap=true,pushTimer=null,applyingRemote=false;
+function parseCfg(raw){
+  if(!raw)return null;raw=String(raw).trim();
+  const s=raw.slice(raw.indexOf('{'),raw.lastIndexOf('}')+1);
+  try{return JSON.parse(s);}catch(e){}
+  try{return Function('return ('+s+')')();}catch(e){}
+  return null;
+}
+function getFbCfg(){
+  if(FIREBASE_CONFIG&&FIREBASE_CONFIG.apiKey)return FIREBASE_CONFIG;
+  const c=parseCfg(localStorage.getItem('bimi_fbcfg'));
+  return (c&&c.apiKey)?c:null;
+}
+function storeId(){return (localStorage.getItem('bimi_store')||STORE_ID||'bimistore-1').replace(/[.#$\[\]\/]/g,'-');}
+function updateSyncBadge(state){
+  const b=document.getElementById('syncBadge');if(!b)return;
+  const s=state||(cloudReady?'ok':(getFbCfg()?'connecting':'local'));
+  const map={local:['◍ Lokal','var(--dim)'],login:['🔒 Perlu login','var(--amber)'],connecting:['◌ Menyambung','var(--amber)'],ok:['☁ Tersinkron','var(--ok)'],error:['⚠ Sync error','var(--danger)']};
+  const m=map[s]||map.local;b.textContent=m[0];b.style.color=m[1];
+}
+function initCloud(){
+  const cfg=getFbCfg();
+  if(!cfg||typeof firebase==='undefined'){updateSyncBadge('local');return;}
+  try{if(!firebase.apps.length)firebase.initializeApp(cfg);}catch(e){updateSyncBadge('error');return;}
+  if(firebase.auth){
+    firebase.auth().onAuthStateChanged(u=>{
+      if(u){hideLogin();updateSyncBadge('connecting');attachDb();}
+      else{updateSyncBadge('login');showLogin();}
+    });
+  }else{updateSyncBadge('connecting');attachDb();}
+}
+function attachDb(){
+  if(_ref)return;
+  try{
+    _ref=firebase.database().ref('bimistore/'+storeId());
+    _ref.on('value',snap=>{
+      const r=snap.val();
+      if(firstSnap){
+        firstSnap=false;cloudReady=true;
+        if(r&&(r.updatedAt||0)>=(S.updatedAt||0)){applyRemote(r);}
+        else{S.updatedAt=Date.now();saveLocal();cloudPush(true);}
+        updateSyncBadge('ok');sweepExpired();return;
+      }
+      if(r&&(r.updatedAt||0)>(S.updatedAt||0)){applyRemote(r);}
+    },err=>updateSyncBadge('error'));
+  }catch(e){updateSyncBadge('error');}
+}
+function syncBadgeTap(){
+  if(getFbCfg()&&typeof firebase!=='undefined'&&firebase.auth&&!firebase.auth().currentUser)showLogin();
+  else openSettings();
+}
+function showLogin(){const o=document.getElementById('loginOv');if(o)o.classList.add('show');}
+function hideLogin(){const o=document.getElementById('loginOv');if(o)o.classList.remove('show');}
+function doLogin(){
+  const em=document.getElementById('lgEmail').value.trim();
+  const pw=document.getElementById('lgPass').value;
+  const st=document.getElementById('lgStatus');
+  if(!em||!pw){st.textContent='Isi email & password.';return;}
+  st.textContent='Masuk…';
+  firebase.auth().signInWithEmailAndPassword(em,pw)
+    .then(()=>{st.textContent='';document.getElementById('lgPass').value='';})
+    .catch(e=>{const c=e.code||'';st.textContent='Gagal: '+((c.includes('invalid-credential')||c.includes('wrong-password')||c.includes('user-not-found'))?'email/password salah':(c.includes('too-many-requests')?'terlalu banyak percobaan, coba lagi nanti':e.message));});
+}
+function doLogout(){try{if(firebase.auth)firebase.auth().signOut();}catch(e){}location.reload();}
+function applyRemote(r){
+  applyingRemote=true;
+  S=Object.assign({packages:[],vouchers:[],settings:S.settings},r);
+  if(!S.settings)S.settings={ssid:'BIMI-STORE WiFi',org:'BIMI-STORE WiFi',warn:5,beep:true};
+  saveLocal();renderAll();
+  applyingRemote=false;
+}
+function cloudPush(now){
+  if(!_ref||applyingRemote)return;
+  clearTimeout(pushTimer);
+  const doPush=()=>{_ref.set(S).then(()=>updateSyncBadge('ok')).catch(()=>updateSyncBadge('error'));};
+  if(now)doPush();else pushTimer=setTimeout(doPush,700);
+}
+/* ---------- PWA install + service worker ---------- */
+let _deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();_deferredPrompt=e;const b=document.getElementById('installBtn');if(b)b.style.display='grid';});
+function doInstall(){if(_deferredPrompt){_deferredPrompt.prompt();_deferredPrompt=null;}else{alert('Buka menu browser, lalu pilih "Tambahkan ke layar utama".');}}
+window.addEventListener('appinstalled',()=>{const b=document.getElementById('installBtn');if(b)b.style.display='none';});
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}
+
+load();renderAll();initCloud();updateSyncBadge();
+</script>
+</body>
+</html>
