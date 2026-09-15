@@ -674,21 +674,41 @@ function delFiltered(){const list=filteredVouchers();if(!list.length)return;if(!
 /* ---------- print vouchers ---------- */
 function printFiltered(){
   const list=filteredVouchers();if(!list.length){alert('Tidak ada voucher untuk dicetak.');return;}
+  const wifiIcon=`<svg viewBox="0 0 24 24" fill="none"><path d="M3 8.5c5.5-5 12.5-5 18 0" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".55"/><path d="M6 12c3.8-3.3 8.2-3.3 12 0" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".8"/><path d="M9.3 15.4c2-1.7 3.4-1.7 5.4 0" stroke="#fff" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="18.2" r="1.5" fill="#fff"/></svg>`;
   const cards=list.map(v=>`<div class="pc">
-    <div class="p-ssid">${esc(S.settings.ssid)}</div>
-    <div class="p-code">${esc(v.code)}</div>
-    <div class="p-info">${esc(v.pkgName)} · ${fmt(v.durSec)} · ${rp(v.price)}</div>
-    <div class="p-org">${esc(S.settings.org)}</div>
+    <div class="pc-cut">✂ - - - - - - - - - - - - - - - - - - - -</div>
+    <div class="pc-card">
+      <div class="pc-head"><span class="pc-logo">${wifiIcon}</span><span class="pc-ssid">${esc(S.settings.ssid)}</span></div>
+      <div class="pc-body">
+        <div class="pc-lbl">Kode Voucher</div>
+        <div class="pc-code">${esc(v.code)}</div>
+        <div class="pc-div"></div>
+        <div class="pc-row"><span class="pc-pkg">${esc(v.pkgName)} &middot; ${fmt(v.durSec)}</span><span class="pc-price">${rp(v.price)}</span></div>
+      </div>
+      <div class="pc-foot">${esc(S.settings.org)} &middot; sambungkan WiFi &amp; masukkan kode ini</div>
+    </div>
   </div>`).join('');
   const w=window.open('','_blank');
   w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Cetak Voucher</title><style>
-    *{box-sizing:border-box;font-family:system-ui,Arial,sans-serif}body{margin:0;padding:10px;background:#fff;color:#111}
-    .sheet{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-    .pc{border:1px dashed #999;border-radius:8px;padding:10px 8px;text-align:center;page-break-inside:avoid}
-    .p-ssid{font-size:11px;color:#0e7490;font-weight:700}
-    .p-code{font-size:20px;font-weight:800;letter-spacing:2px;margin:5px 0;font-family:ui-monospace,monospace}
-    .p-info{font-size:10px;color:#444}.p-org{font-size:9px;color:#888;margin-top:6px}
-    @media print{@page{margin:8mm}}
+    *{box-sizing:border-box;font-family:system-ui,-apple-system,Arial,sans-serif}
+    body{margin:0;padding:12px;background:#fff;color:#0f172a}
+    .sheet{display:grid;grid-template-columns:repeat(4,1fr);gap:0}
+    .pc{page-break-inside:avoid;padding:4px 5px}
+    .pc-cut{font-size:8px;color:#c7ccd3;text-align:center;letter-spacing:1px;margin-bottom:3px;white-space:nowrap;overflow:hidden}
+    .pc-card{border:1px solid #dfe4ea;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+    .pc-head{background:linear-gradient(120deg,#22D3EE 0%,#4F8DF5 55%,#7C6BF2 100%);padding:7px 9px;display:flex;align-items:center;gap:6px}
+    .pc-logo{width:16px;height:16px;flex:0 0 auto}
+    .pc-logo svg{width:16px;height:16px;display:block}
+    .pc-ssid{font-size:10px;font-weight:700;color:#fff;letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .pc-body{padding:9px 9px 7px;text-align:center;background:#fff}
+    .pc-lbl{font-size:7.5px;color:#94a3b8;text-transform:uppercase;letter-spacing:.8px;font-weight:700}
+    .pc-code{font-size:19px;font-weight:800;letter-spacing:2.5px;margin:3px 0 6px;font-family:ui-monospace,Menlo,Consolas,monospace;color:#0f172a}
+    .pc-div{height:1px;background:repeating-linear-gradient(90deg,#e2e8f0,#e2e8f0 4px,transparent 4px,transparent 8px);margin:0 4px 6px}
+    .pc-row{display:flex;justify-content:space-between;align-items:center;gap:4px}
+    .pc-pkg{font-size:8.5px;color:#475569;font-weight:600}
+    .pc-price{font-size:9.5px;font-weight:800;color:#0e7490}
+    .pc-foot{background:#f8fafc;border-top:1px solid #eef2f7;padding:4px 8px;font-size:6.8px;color:#94a3b8;text-align:center}
+    @media print{@page{margin:8mm}.pc-cut{color:#bbb}}
   </style></head><body onload="print()"><div class="sheet">${cards}</div></body></html>`);
   w.document.close();
 }
