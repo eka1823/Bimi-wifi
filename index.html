@@ -325,6 +325,14 @@
 
     <div class="stats" style="margin-top:18px" id="bStats"></div>
 
+    <div id="reminderBox" style="display:none;margin-top:18px">
+      <h2 class="sec">🔔 Pengingat Jatuh Tempo <span class="count" id="reminderCount"></span></h2>
+      <div class="card" style="padding:14px 16px">
+        <p style="margin:0 0 12px;font-size:12.5px;color:var(--muted)">Pelanggan yang masa aktifnya habis <b>hari ini/besok</b>. Pesan sudah disiapkan — tinggal ketuk untuk kirim lewat WhatsApp.</p>
+        <div id="reminderList" style="display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+    </div>
+
     <h2 class="sec">Daftar Pelanggan <span class="count" id="subCount"></span></h2>
     <div class="tablewrap">
       <table>
@@ -688,11 +696,18 @@ function printFiltered(){
       <div class="pc-foot">${esc(S.settings.org)} &middot; sambungkan WiFi &amp; masukkan kode ini</div>
     </div>
   </div>`).join('');
+  const totalHarga=list.reduce((a,v)=>a+(v.price||0),0);
   const w=window.open('','_blank');
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Cetak Voucher</title><style>
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Cetak Voucher — ${esc(S.settings.org)}</title><style>
     *{box-sizing:border-box;font-family:system-ui,-apple-system,Arial,sans-serif}
-    body{margin:0;padding:12px;background:#fff;color:#0f172a}
-    .sheet{display:grid;grid-template-columns:repeat(4,1fr);gap:0}
+    body{margin:0;padding:14px;background:#eef2f6;color:#0f172a}
+    .toolbar{max-width:900px;margin:0 auto 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+    .toolbar h1{font-size:15px;margin:0;color:#0f172a}
+    .toolbar p{font-size:11.5px;color:#64748b;margin:2px 0 0}
+    .btn-print{background:linear-gradient(120deg,#22D3EE 0%,#4F8DF5 55%,#7C6BF2 100%);color:#fff;border:none;
+      padding:10px 18px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;box-shadow:0 8px 18px -8px rgba(79,141,245,.6)}
+    .sheet{max-width:900px;margin:0 auto;background:#fff;padding:14px;border-radius:14px;
+      display:grid;grid-template-columns:repeat(4,1fr);gap:0;box-shadow:0 10px 30px -15px rgba(0,0,0,.15)}
     .pc{page-break-inside:avoid;padding:4px 5px}
     .pc-cut{font-size:8px;color:#c7ccd3;text-align:center;letter-spacing:1px;margin-bottom:3px;white-space:nowrap;overflow:hidden}
     .pc-card{border:1px solid #dfe4ea;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)}
@@ -708,8 +723,23 @@ function printFiltered(){
     .pc-pkg{font-size:8.5px;color:#475569;font-weight:600}
     .pc-price{font-size:9.5px;font-weight:800;color:#0e7490}
     .pc-foot{background:#f8fafc;border-top:1px solid #eef2f7;padding:4px 8px;font-size:6.8px;color:#94a3b8;text-align:center}
-    @media print{@page{margin:8mm}.pc-cut{color:#bbb}}
-  </style></head><body onload="print()"><div class="sheet">${cards}</div></body></html>`);
+    @media print{
+      body{background:#fff;padding:0}
+      .toolbar{display:none}
+      .sheet{box-shadow:none;padding:0;max-width:100%}
+      @page{margin:8mm}
+      .pc-cut{color:#bbb}
+    }
+  </style></head><body>
+    <div class="toolbar">
+      <div>
+        <h1>Cetak Voucher — ${esc(S.settings.org)}</h1>
+        <p>${list.length} voucher &middot; Total nilai ${rp(totalHarga)}</p>
+      </div>
+      <button class="btn-print" onclick="window.print()">🖨️ Cetak Sekarang</button>
+    </div>
+    <div class="sheet">${cards}</div>
+  </body></html>`);
   w.document.close();
 }
 
@@ -839,6 +869,52 @@ function subState(s){
   if(left<0)return{t:'Jatuh tempo',cls:'exp',days:left};
   return{t:'Aktif',cls:'ok',days:left};
 }
+/* ---------- pengingat jatuh tempo (WhatsApp) ---------- */
+function waPhoneLink(phone){
+  let p=(phone||'').replace(/[^0-9+]/g,'');
+  if(p.startsWith('+'))p=p.slice(1);
+  if(p.startsWith('0'))p='62'+p.slice(1);
+  if(p.startsWith('8'))p='62'+p; // jaga-jaga kalau angka 0 di depan sudah terlanjur hilang
+  return p;
+}
+function reminderMsg(s){
+  const due=new Date(s.dueAt).toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'});
+  const org=S.settings.org||'BIMI-STORE WiFi';
+  const daysLeft=Math.ceil((s.dueAt-Date.now())/86400000);
+  const kapan=daysLeft<=0?'HARI INI':'BESOK ('+due+')';
+  return `Halo ${s.name}, WiFi ${org} untuk paket ${s.speed||''} atas nama Anda akan *habis masa aktifnya ${kapan}*.\n\nAgar internet tetap menyala, mohon lakukan pembayaran ${rp(s.price)} sebelum jatuh tempo.\n\nTerima kasih 🙏\n- ${org}`;
+}
+function sendReminder(id){
+  const s=(S.subs||[]).find(x=>x.id===id);if(!s)return;
+  if(!s.phone){alert('Pelanggan ini belum punya No. HP. Tambahkan dulu di data pelanggan.');return;}
+  const url='https://wa.me/'+waPhoneLink(s.phone)+'?text='+encodeURIComponent(reminderMsg(s));
+  window.open(url,'_blank');
+}
+function renderReminders(){
+  const box=document.getElementById('reminderBox');const list=document.getElementById('reminderList');
+  if(!box||!list)return;
+  const now=Date.now();
+  const due=(S.subs||[]).filter(s=>{
+    if(!s.active)return false;
+    const days=Math.ceil((s.dueAt-now)/86400000);
+    return days<=1 && days>=0;
+  }).sort((a,b)=>a.dueAt-b.dueAt);
+  document.getElementById('reminderCount').textContent=due.length?due.length+' pelanggan':'';
+  if(!due.length){box.style.display='none';return;}
+  box.style.display='block';
+  list.innerHTML=due.map(s=>{
+    const days=Math.ceil((s.dueAt-now)/86400000);
+    const kapan=days<=0?'Habis hari ini':'Habis besok';
+    return `<div style="display:flex;align-items:center;gap:10px;justify-content:space-between;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:linear-gradient(180deg,var(--surf2),var(--surf))">
+      <div>
+        <b>${esc(s.name)}</b>
+        <div style="font-size:11.5px;color:var(--amber)">${kapan} &middot; ${rp(s.price)}</div>
+        ${s.phone?'<div style="font-size:11px;color:var(--muted)">'+esc(s.phone)+'</div>':'<div style="font-size:11px;color:var(--danger)">belum ada No. HP</div>'}
+      </div>
+      ${s.phone?`<button class="btn small" style="background:#25d366;border-color:transparent;color:#04160f;font-weight:700;flex:0 0 auto" onclick="sendReminder('${s.id}')">💬 Kirim WA</button>`:''}
+    </div>`;
+  }).join('');
+}
 function renderSubs(){
   const subs=S.subs||[];const now=Date.now(),nowYm=ym(now);
   const aktif=subs.filter(s=>s.active&&s.dueAt>now).length;
@@ -846,6 +922,7 @@ function renderSubs(){
   const revM=subs.reduce((a,s)=>a+(s.payments||[]).filter(p=>ym(p.at)===nowYm).reduce((b,p)=>b+(p.amount||0),0),0);
   const bs=document.getElementById('bStats');
   if(bs)bs.innerHTML=statBox('Pelanggan Aktif',aktif)+statBox('Jatuh Tempo ≤3 hari',tempo)+statBox('Pendapatan Bulan Ini',rp(revM))+statBox('Total Pelanggan',subs.length);
+  renderReminders();
   const tb=document.getElementById('subBody');if(!tb)return;
   if(!subs.length){tb.innerHTML='<tr><td colspan="6" class="empty">Belum ada pelanggan bulanan.</td></tr>';document.getElementById('subCount').textContent='';return;}
   tb.innerHTML=subs.map(s=>{
@@ -862,6 +939,7 @@ function renderSubs(){
       <td>${pill}</td>
       <td class="r" style="white-space:nowrap">
         <button class="btn small grn" onclick="renewSub('${s.id}')">↻ Perpanjang</button>
+        ${s.phone?`<button class="btn small ghost" onclick="sendReminder('${s.id}')" title="Kirim pengingat WA">💬</button>`:''}
         <button class="btn small ghost" onclick="suspendSub('${s.id}')">${s.active?'Nonaktif':'Aktifkan'}</button>
         <button class="btn small ghost dangerbtn" onclick="delSub('${s.id}')">✕</button>
       </td></tr>`;
