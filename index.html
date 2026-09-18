@@ -700,6 +700,7 @@ function printFiltered(){
   const w=window.open('','_blank');
   w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Cetak Voucher — ${esc(S.settings.org)}</title><style>
     *{box-sizing:border-box;font-family:system-ui,-apple-system,Arial,sans-serif}
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact}
     body{margin:0;padding:14px;background:#eef2f6;color:#0f172a}
     .toolbar{max-width:900px;margin:0 auto 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
     .toolbar h1{font-size:15px;margin:0;color:#0f172a}
