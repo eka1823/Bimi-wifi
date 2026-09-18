@@ -456,6 +456,8 @@
     <div class="fld" style="margin-bottom:12px"><label>Nama WiFi (SSID) di voucher</label><input id="sSsid" placeholder="WiFi Desa Tepian Terap"></div>
     <div class="fld" style="margin-bottom:12px"><label>Nama penerbit (di kartu voucher)</label><input id="sOrg" placeholder="BIMI-STORE WiFi"></div>
     <div class="fld" style="margin-bottom:6px"><label>Peringatan sisa waktu (menit)</label><input id="sWarn" type="number" min="0" class="mono"></div>
+    <div class="fld" style="margin:12px 0 6px"><label>IP Hotspot MikroTik (untuk QR auto-login)</label><input id="sHsIp" placeholder="192.168.88.1" class="mono"></div>
+    <p class="hint" style="margin:0 0 6px">Biarkan default kecuali Gogo mengubah alamat LAN MikroTik. Dipakai supaya QR di kartu voucher bisa login otomatis.</p>
     <div class="switch">
       <div class="lbl">Bunyi peringatan<small>Beep saat mendekati & habis waktu</small></div>
       <div class="toggle" id="tgBeep" onclick="this.classList.toggle('on')"><b></b></div>
@@ -495,7 +497,8 @@ let vFilterMode='all', reportMode='bulan';
 /* ---------- persistence ---------- */
 function load(){
   try{const r=localStorage.getItem(KEY);if(r)S=Object.assign(S,JSON.parse(r));}catch(e){}
-  if(!S.settings)S.settings={ssid:'BIMI-STORE WiFi',org:'BIMI-STORE WiFi',warn:5,beep:true};
+  if(!S.settings)S.settings={ssid:'BIMI-STORE WiFi',org:'BIMI-STORE WiFi',warn:5,beep:true,hsIp:'192.168.88.1'};
+  if(!S.settings.hsIp)S.settings.hsIp='192.168.88.1';
   if(!S.packages)S.packages=[];
   if(!S.vouchers)S.vouchers=[];
   if(!S.subs)S.subs=[];
@@ -682,8 +685,9 @@ function delFiltered(){const list=filteredVouchers();if(!list.length)return;if(!
 /* ---------- print vouchers ---------- */
 function printFiltered(){
   const list=filteredVouchers();if(!list.length){alert('Tidak ada voucher untuk dicetak.');return;}
+  const hsIp=(S.settings.hsIp||'192.168.88.1').trim();
   const wifiIcon=`<svg viewBox="0 0 24 24" fill="none"><path d="M3 8.5c5.5-5 12.5-5 18 0" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".55"/><path d="M6 12c3.8-3.3 8.2-3.3 12 0" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".8"/><path d="M9.3 15.4c2-1.7 3.4-1.7 5.4 0" stroke="#fff" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="18.2" r="1.5" fill="#fff"/></svg>`;
-  const cards=list.map(v=>`<div class="pc">
+  const cards=list.map((v,i)=>`<div class="pc">
     <div class="pc-cut">✂ - - - - - - - - - - - - - - - - - - - -</div>
     <div class="pc-card">
       <div class="pc-head"><span class="pc-logo">${wifiIcon}</span><span class="pc-ssid">${esc(S.settings.ssid)}</span></div>
@@ -692,13 +696,22 @@ function printFiltered(){
         <div class="pc-code">${esc(v.code)}</div>
         <div class="pc-div"></div>
         <div class="pc-row"><span class="pc-pkg">${esc(v.pkgName)} &middot; ${fmt(v.durSec)}</span><span class="pc-price">${rp(v.price)}</span></div>
+        <div class="pc-div"></div>
+        <div class="pc-qr" id="qr${i}"></div>
+        <div class="pc-qr-cap">📶 Scan setelah tersambung WiFi</div>
       </div>
       <div class="pc-foot">${esc(S.settings.org)} &middot; sambungkan WiFi &amp; masukkan kode ini</div>
     </div>
   </div>`).join('');
   const totalHarga=list.reduce((a,v)=>a+(v.price||0),0);
+  const qrInit=list.map((v,i)=>{
+    const url='http://'+hsIp+'/login?username='+encodeURIComponent(v.code)+'&password='+encodeURIComponent(v.code);
+    return `new QRCode(document.getElementById("qr${i}"),{text:${JSON.stringify(url)},width:120,height:120,correctLevel:QRCode.CorrectLevel.M});`;
+  }).join('\n');
   const w=window.open('','_blank');
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Cetak Voucher — ${esc(S.settings.org)}</title><style>
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Cetak Voucher — ${esc(S.settings.org)}</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
+  <style>
     *{box-sizing:border-box;font-family:system-ui,-apple-system,Arial,sans-serif}
     *{-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact}
     body{margin:0;padding:14px;background:#eef2f6;color:#0f172a}
@@ -723,6 +736,9 @@ function printFiltered(){
     .pc-row{display:flex;justify-content:space-between;align-items:center;gap:4px}
     .pc-pkg{font-size:8.5px;color:#475569;font-weight:600}
     .pc-price{font-size:9.5px;font-weight:800;color:#0e7490}
+    .pc-qr{width:52px;height:52px;margin:2px auto 3px;display:flex;align-items:center;justify-content:center}
+    .pc-qr img,.pc-qr canvas{width:52px!important;height:52px!important;image-rendering:pixelated}
+    .pc-qr-cap{font-size:6.3px;color:#94a3b8;margin-bottom:2px}
     .pc-foot{background:#f8fafc;border-top:1px solid #eef2f7;padding:4px 8px;font-size:6.8px;color:#94a3b8;text-align:center}
     @media print{
       body{background:#fff;padding:0}
@@ -735,11 +751,12 @@ function printFiltered(){
     <div class="toolbar">
       <div>
         <h1>Cetak Voucher — ${esc(S.settings.org)}</h1>
-        <p>${list.length} voucher &middot; Total nilai ${rp(totalHarga)}</p>
+        <p>${list.length} voucher &middot; Total nilai ${rp(totalHarga)} &middot; QR = login otomatis</p>
       </div>
       <button class="btn-print" onclick="window.print()">🖨️ Cetak Sekarang</button>
     </div>
     <div class="sheet">${cards}</div>
+    <script>${qrInit}<\/script>
   </body></html>`);
   w.document.close();
 }
@@ -1155,6 +1172,7 @@ async function mkPush(){
 function openSettings(){
   document.getElementById('sSsid').value=S.settings.ssid||'';
   document.getElementById('sOrg').value=S.settings.org||'';
+  document.getElementById('sHsIp').value=S.settings.hsIp||'192.168.88.1';
   document.getElementById('sWarn').value=S.settings.warn||0;
   document.getElementById('tgBeep').classList.toggle('on',!!S.settings.beep);
   document.getElementById('sFb').value=localStorage.getItem('bimi_fbcfg')||'';
@@ -1166,6 +1184,7 @@ function closeSettings(){document.getElementById('setOv').classList.remove('show
 function saveSettings(){
   S.settings.ssid=document.getElementById('sSsid').value.trim()||'WiFi';
   S.settings.org=document.getElementById('sOrg').value.trim();
+  S.settings.hsIp=document.getElementById('sHsIp').value.trim()||'192.168.88.1';
   S.settings.warn=parseInt(document.getElementById('sWarn').value)||0;
   S.settings.beep=document.getElementById('tgBeep').classList.contains('on');
   const fb=document.getElementById('sFb').value.trim();
@@ -1262,7 +1281,8 @@ function doLogout(){try{if(firebase.auth)firebase.auth().signOut();}catch(e){}lo
 function applyRemote(r){
   applyingRemote=true;
   S=Object.assign({packages:[],vouchers:[],settings:S.settings},r);
-  if(!S.settings)S.settings={ssid:'BIMI-STORE WiFi',org:'BIMI-STORE WiFi',warn:5,beep:true};
+  if(!S.settings)S.settings={ssid:'BIMI-STORE WiFi',org:'BIMI-STORE WiFi',warn:5,beep:true,hsIp:'192.168.88.1'};
+  if(!S.settings.hsIp)S.settings.hsIp='192.168.88.1';
   saveLocal();renderAll();
   applyingRemote=false;
 }
